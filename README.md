@@ -11,7 +11,7 @@ Here are the steps for generating the conda environment for running the model ru
 ```
 export PYTHONNOUSERSITE=True # used by conda-pack
 conda install -y -c pytorch -c conda-forge bioimageio.core pytorch torchvision cudatoolkit=11.3 cudnn tensorflow onnxruntime xarray
-pip install imjoy_rpc aioprocessing
+pip install imjoy-rpc aioprocessing
 conda install conda-pack
 conda-pack
 ```
