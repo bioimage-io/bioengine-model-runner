@@ -6,10 +6,8 @@ sys.path.append(os.path.dirname(__file__)+"/../")
 import numpy as np
 from model import TritonPythonModel
 
-model = TritonPythonModel()
-model.initialize({"model_config": "{}", "model_instance_kind": "CPU"})
 
-async def test_execute_model():
+async def test_execute_model(model):
     image = np.random.randint(0, 255, size=(1, 1, 128, 128), dtype=np.uint8).astype(
         "float32"
     )
@@ -19,5 +17,10 @@ async def test_execute_model():
         result["outputs"][0].shape
     )
     print("Test passed")
-
-asyncio.run(test_execute_model())
+    
+if __name__ == "__main__":
+    from multiprocessing import freeze_support
+    freeze_support()
+    model = TritonPythonModel()
+    model.initialize({"model_config": "{}", "model_instance_kind": "CPU"})
+    asyncio.run(test_execute_model(model))
