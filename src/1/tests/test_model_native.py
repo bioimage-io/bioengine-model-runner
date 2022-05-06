@@ -24,3 +24,4 @@ if __name__ == "__main__":
     model = TritonPythonModel()
     model.initialize({"model_config": "{}", "model_instance_kind": "CPU"})
     asyncio.run(test_execute_model(model))
+    os._exit(os.EX_OK)
