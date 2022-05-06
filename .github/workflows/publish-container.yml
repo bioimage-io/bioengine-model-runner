@@ -29,7 +29,7 @@ jobs:
         uses: salsify/action-detect-and-tag-new-version@v2.0.1
         with:
           version-command: |
-            bash -o pipefail -c "cat 1/VERSION | jq -r '.version'"
+            bash -o pipefail -c "cat src/1/VERSION | jq -r '.version'"
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
