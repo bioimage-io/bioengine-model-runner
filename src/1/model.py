@@ -84,17 +84,20 @@ def start_model_worker(
     except Exception:
         output_queue.put(
             {
-                "task_id": None,
+                "task_id": "start",
                 "error": f"Failed to load the model {model_id}: \n" + traceback.format_exc(),
                 "success": False,
             }
         )
+    else:
+        output_queue.put({"task_id": "start", "success": True})
+
     while True:
         with lock:
             task_info = input_queue.get()
             start_time = time.time()
             if task_info["type"] == "quit":
-                output_queue.put({"success": True})
+                output_queue.put({"task_id": "quit", "success": True})
                 break
             try:
                 assert model_id == task_info["model_id"]
@@ -256,6 +259,8 @@ class TritonPythonModel:
             kwargs={"devices": self.devices, "weight_format": weight_format},
         )
         p.start()
+        # wait for the actual start
+        await self.output_queue.coro_get()
         self.current_model_signature = f"{model_id}:{weight_format}"
 
     async def get_current_model(self):
