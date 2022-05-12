@@ -30,5 +30,5 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN conda update pip -y
 RUN conda install -y -c pytorch -c conda-forge bioimageio.core pytorch torchvision cudatoolkit=11.3 cudnn
 RUN conda install -y -c conda-forge tensorflow onnxruntime
-RUN pip install xarray imjoy_rpc aioprocessing
+RUN pip install xarray imjoy-rpc aioprocessing
 ADD src/start_bioengine_model_runner.py /home
