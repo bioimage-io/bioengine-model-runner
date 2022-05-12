@@ -1,0 +1,8 @@
+bioimageio.core
+torch
+torchvision
+tensorflow
+onnxruntime
+xarray
+imjoy-rpc
+aioprocessing
