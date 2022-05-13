@@ -4,7 +4,6 @@ ssl._create_default_https_context = ssl._create_unverified_context
 import json
 import numpy as np
 import xarray as xr
-import bioimageio.core
 from bioimageio.core.prediction_pipeline import create_prediction_pipeline
 from bioimageio.spec import serialize_raw_resource_description_to_dict
 import traceback
@@ -55,6 +54,9 @@ else:
 
 os.makedirs(MODEL_DIR, exist_ok=True)
 os.environ["BIOIMAGEIO_CACHE_PATH"] = os.environ.get("BIOIMAGEIO_CACHE_PATH", MODEL_DIR)
+
+# The import should be set after the import
+import bioimageio.core
 
 def downlod_model(model_id):
     out_folder = os.path.join(MODEL_DIR, model_id)
