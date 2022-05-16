@@ -12,6 +12,9 @@ import traceback
 import asyncio
 import time
 import os
+import shutil
+import zipfile
+import concurrent.futures
 
 import uuid
 import xarray as xr
@@ -29,6 +32,19 @@ import aioprocessing
 # contains some utility functions for extracting information from model_config
 # and converting Triton input/output types to numpy types.
 import triton_python_backend_utils as pb_utils
+import threading
+
+class ThreadSafeDict(dict) :
+    def __init__(self, * p_arg, ** n_arg) :
+        dict.__init__(self, * p_arg, ** n_arg)
+        self._lock = threading.Lock()
+
+    def __enter__(self) :
+        self._lock.acquire()
+        return self
+
+    def __exit__(self, type, value, traceback) :
+        self._lock.release()
 
 # This is required for pytorch to work with multiprocessing
 torch.multiprocessing.set_start_method('spawn', force=True)
@@ -56,20 +72,55 @@ else:
 
 os.makedirs(MODEL_DIR, exist_ok=True)
 os.environ["BIOIMAGEIO_CACHE_PATH"] = os.environ.get("BIOIMAGEIO_CACHE_PATH", MODEL_DIR)
-
 print(f"BioEngine Model Runner (bioimageio.spec: {bioimageio.spec.__version__}, bioimageio.core: {bioimageio.core.__version__}, MODEL_DIR: {MODEL_DIR})")
 
 # The import should be set after the import
 import bioimageio.core
 
-def downlod_model(model_id):
+executor = concurrent.futures.ThreadPoolExecutor(
+    max_workers=4,
+)
+
+downloading_models = ThreadSafeDict()
+
+def check_model_downloading(model_id):
+    with downloading_models as models:
+        if model_id in models:
+            return models[model_id]
+        else:
+            return False
+
+def download_model(model_id):
     out_folder = os.path.join(MODEL_DIR, model_id)
     out_path = os.path.join(out_folder, "model.zip")
-    if os.path.exists(out_path):
+    if get_installed_model(model_id):
         return out_path
+
     os.makedirs(out_folder, exist_ok=True)
-    bioimageio.core.export_resource_package(model_id, output_path=out_path)
-    return model_id
+    try:
+        with downloading_models as models:
+            models[model_id] = "downloading"
+        bioimageio.core.export_resource_package(model_id, output_path=out_path)
+        with downloading_models as models:
+            if model_id in models:
+                del models[model_id]
+    except Exception as exp:
+        print("Failed to export model: ", exp)
+        shutil.rmtree(out_folder, ignore_errors=True)
+        with downloading_models as models:
+            models[model_id] = f"failed to download: {exp}"
+        raise
+    return out_path
+
+def get_installed_model(model_id):
+    out_path = os.path.join(MODEL_DIR, model_id,  "model.zip")
+    if os.path.exists(out_path):
+        z = zipfile.ZipFile(out_path)
+        if z.testzip() is None:
+            return out_path
+        else: # Remove corrupted
+            os.remove(out_path)
+    return False
 
 def get_model_rdf(model_id):
     raw_resource = bioimageio.core.load_raw_resource_description(model_id)
@@ -79,9 +130,6 @@ def start_model_worker(
     model_id, input_queue, output_queue, lock, devices="cpu", weight_format=None
 ):
     try:
-        # out_path = downlod_model(
-        #     model_id
-        # )
         model_resource = bioimageio.core.load_resource_description(model_id)
         pred_pipeline = create_prediction_pipeline(
             bioimageio_model=model_resource, devices=[devices], weight_format=weight_format
@@ -221,7 +269,7 @@ class TritonPythonModel:
                     weight_format = kwargs.get("weight_format")
                     result = await self.execute_model(inputs, model_id, weight_format=weight_format)
                 if "return_rdf" in kwargs:
-                    result["rdf"] = await loop.run_in_executor(None, get_model_rdf, model_id)
+                    result["rdf"] = await loop.run_in_executor(executor, get_model_rdf, model_id)
                 data = _rpc.encode(result)
                 bytes_data = msgpack.dumps(data)
                 outputs_bytes_data = np.array([bytes_data], dtype=np.object_)
@@ -250,7 +298,7 @@ class TritonPythonModel:
         ), "HTTP model url is not allowed, please use Zenodo DOI or nickname."
         loop = asyncio.get_running_loop()
         try:
-            await loop.run_in_executor(None, get_model_rdf, model_id)
+            await loop.run_in_executor(executor, get_model_rdf, model_id)
         except Exception:
             raise KeyError(f"Failed to load the model: {model_id}")
 
@@ -274,12 +322,39 @@ class TritonPythonModel:
     async def get_current_model(self):
         return {"model_id": self.current_model_signature and self.current_model_signature.split(':')[0]}
 
+    async def get_installed_model(self, model_id, install=False):
+        model_path = get_installed_model(model_id)
+        if model_path:
+            return {"exists": True}
+        else:
+            loop = asyncio.get_running_loop()
+            downloading = await loop.run_in_executor(None, check_model_downloading, model_id)
+            if install and not downloading:
+                loop.create_task(loop.run_in_executor(executor, download_model, model_id))
+                return {"exists": False, "downloading": True, "started": True}
+            return {"exists": False, "downloading": True, "started": False}
+
     async def execute_model(self, inputs, model_id, weight_format=None):
         assert not model_id.startswith(
             "http"
         ), "HTTP model url is not allowed, please use Zenodo DOI or nickname."
+        loop = asyncio.get_running_loop()
+        # rdf = await loop.run_in_executor(executor, get_model_rdf, model_id)
+        # model_id = rdf["id"]
+        model_path = get_installed_model(model_id)
+        if not model_path:
+            downloading = await loop.run_in_executor(None, check_model_downloading, model_id)
+            if not downloading:
+                loop.create_task(loop.run_in_executor(executor, download_model, model_id))
+            else:
+                return {
+                    "downloading_status": downloading,
+                    "error": f"Model does not exists: {model_id}",
+                    "success": False,
+                }
+        
         if self.current_model_signature != f"{model_id}:{weight_format}":
-            await self.load_model(model_id, weight_format=weight_format)
+            await self.load_model(model_path, weight_format=weight_format)
 
         task_info = {
             "task_id": str(uuid.uuid4()),
