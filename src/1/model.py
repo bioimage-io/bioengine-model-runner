@@ -4,6 +4,8 @@ ssl._create_default_https_context = ssl._create_unverified_context
 import json
 import numpy as np
 import xarray as xr
+import bioimageio.spec
+import bioimageio.core
 from bioimageio.core.prediction_pipeline import create_prediction_pipeline
 from bioimageio.spec import serialize_raw_resource_description_to_dict
 import traceback
@@ -55,6 +57,8 @@ else:
 os.makedirs(MODEL_DIR, exist_ok=True)
 os.environ["BIOIMAGEIO_CACHE_PATH"] = os.environ.get("BIOIMAGEIO_CACHE_PATH", MODEL_DIR)
 
+print(f"BioEngine Model Runner (bioimageio.spec: {bioimageio.spec.__version__}, bioimageio.core: {bioimageio.core.__version__}, MODEL_DIR: {MODEL_DIR})")
+
 # The import should be set after the import
 import bioimageio.core
 
@@ -91,6 +95,7 @@ def start_model_worker(
                 "success": False,
             }
         )
+        return
     else:
         output_queue.put({"task_id": "start", "success": True})
 
@@ -262,7 +267,8 @@ class TritonPythonModel:
         )
         p.start()
         # wait for the actual start
-        await self.output_queue.coro_get()
+        result = await self.output_queue.coro_get()
+        assert result["success"] == True, result["error"]
         self.current_model_signature = f"{model_id}:{weight_format}"
 
     async def get_current_model(self):
