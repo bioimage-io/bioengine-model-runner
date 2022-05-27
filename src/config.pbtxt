@@ -1,0 +1,24 @@
+name: "bioengine-model-runner"
+backend: "python"
+
+input [
+  {
+    name: "kwargs"
+    data_type: TYPE_STRING
+    dims: [-1]
+  }
+]
+output [
+  {
+    name: "result"
+    data_type: TYPE_STRING
+    dims: [-1]
+  }
+]
+
+instance_group [{ count: 3, kind: KIND_GPU }]
+
+parameters: {
+  key: "EXECUTION_ENV_PATH",
+  value: {string_value: "$$TRITON_MODEL_DIRECTORY/../bioengine-model-runner.tar.gz"}
+}
