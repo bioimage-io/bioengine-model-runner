@@ -1,4 +1,5 @@
 # patch for fix "urlopen error [SSL: CERTIFICATE_VERIFY_FAILED]" error
+import shutil
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
 import json
@@ -12,6 +13,7 @@ import traceback
 import asyncio
 import time
 import os
+import zipfile
 
 import uuid
 import xarray as xr
@@ -62,14 +64,46 @@ print(f"BioEngine Model Runner (bioimageio.spec: {bioimageio.spec.__version__}, 
 # The import should be set after the import
 import bioimageio.core
 
-def downlod_model(model_id):
+downloading_models = []
+
+
+async def downlod_model(model_id):
     out_folder = os.path.join(MODEL_DIR, model_id)
-    out_path = os.path.join(out_folder, "model.zip")
+    out_path = os.path.join(out_folder, "model")
+    rdf_path = os.path.join(out_path, "rdf.yaml")
+    if os.path.exists(rdf_path):
+        return rdf_path
+    os.makedirs(out_folder, exist_ok=True)
+    try:
+        if model_id not in downloading_models:
+            logger.info("Start model downloading %s", model_id)
+            downloading_models.append(model_id)
+            loop = asyncio.get_running_loop()
+
+            def download(model_id, out_path):
+                bioimageio.core.export_resource_package(model_id, output_path=out_path+".zip")
+                with zipfile.ZipFile(out_path+".zip","r") as zip_ref:
+                    zip_ref.extractall(out_path)
+                os.remove(out_path+".zip")
+            await loop.run_in_executor(None, download, model_id, out_path)
+            
+            downloading_models.remove(model_id)
+        else:
+            logger.info("Model is already downloading %s", model_id)
+    except Exception as exp:
+        if model_id in downloading_models:
+            downloading_models.remove(model_id)
+        shutil.rmtree(out_folder)
+        logger.error("Failed to download model %s", model_id)
+    return rdf_path
+
+def model_exists(model_id):
+    out_folder = os.path.join(MODEL_DIR, model_id)
+    out_path = os.path.join(out_folder, "model", "rdf.yaml")
     if os.path.exists(out_path):
         return out_path
-    os.makedirs(out_folder, exist_ok=True)
-    bioimageio.core.export_resource_package(model_id, output_path=out_path)
-    return model_id
+    else:
+        return False
 
 def get_model_rdf(model_id):
     raw_resource = bioimageio.core.load_raw_resource_description(model_id)
@@ -79,9 +113,6 @@ def start_model_worker(
     model_id, input_queue, output_queue, lock, devices="cpu", weight_format=None
 ):
     try:
-        # out_path = downlod_model(
-        #     model_id
-        # )
         model_resource = bioimageio.core.load_resource_description(model_id)
         pred_pipeline = create_prediction_pipeline(
             bioimageio_model=model_resource, devices=[devices], weight_format=weight_format
@@ -133,6 +164,16 @@ def start_model_worker(
                 )
             except KeyboardInterrupt:
                 logger.info("Terminating by CTRL-C")
+                break
+            except RuntimeError:
+                # E.g. out of memory error
+                output_queue.put(
+                    {
+                        "task_id": task_info["task_id"],
+                        "error": traceback.format_exc(),
+                        "success": False,
+                    }
+                )
                 break
             except Exception:
                 output_queue.put(
@@ -215,13 +256,22 @@ class TritonPythonModel:
                 kwargs = _rpc.decode(data)
                 assert "model_id" in kwargs, "model_id must be provided"
                 result = {}
-                model_id = kwargs["model_id"] 
+                model_id = kwargs["model_id"]
+
+                model_path = model_exists(model_id)
+                if not model_path:
+                    asyncio.ensure_future(downlod_model(model_id))
+                    return {
+                        "error": f"Model {model_id} is not ready for inference, please try again later.",
+                        "success": False,
+                    }
+
                 if "inputs" in kwargs:
                     inputs = kwargs.get("inputs")
                     weight_format = kwargs.get("weight_format")
                     result = await self.execute_model(inputs, model_id, weight_format=weight_format)
                 if "return_rdf" in kwargs:
-                    result["rdf"] = await loop.run_in_executor(None, get_model_rdf, model_id)
+                    result["rdf"] = await loop.run_in_executor(None, get_model_rdf, model_path)
                 data = _rpc.encode(result)
                 bytes_data = msgpack.dumps(data)
                 outputs_bytes_data = np.array([bytes_data], dtype=np.object_)
@@ -278,6 +328,17 @@ class TritonPythonModel:
         assert not model_id.startswith(
             "http"
         ), "HTTP model url is not allowed, please use Zenodo DOI or nickname."
+        
+        model_path = model_exists(model_id)
+        if not model_path:
+            asyncio.ensure_future(downlod_model(model_id))
+            return {
+                "error": f"Model {model_id} is not ready for inference, please try again later.",
+                "success": False,
+            }
+        else:
+            model_id = model_path
+
         if self.current_model_signature != f"{model_id}:{weight_format}":
             await self.load_model(model_id, weight_format=weight_format)
 

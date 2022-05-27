@@ -1,6 +1,8 @@
 import requests
 import json
 import os
+import zipfile
+from tqdm import tqdm
 
 model_snapshots_directory = os.environ.get("MODEL_SNAPSHOTS_DIRECTORY")
 if model_snapshots_directory:
@@ -24,10 +26,20 @@ if __name__ == "__main__":
     response = requests.get("https://raw.githubusercontent.com/bioimage-io/collection-bioimage-io/gh-pages/rdf.json")
     summary = json.loads(response.content)
     collection = summary["collection"]
-    for item in collection:
+    for item in tqdm(collection):
         if item["type"] == "model" and item["id"].startswith("10.5281/zenodo."):
             try:
-                bioimageio.core.load_resource_description(item["id"])
-                print("Model downloaded: " + item["id"])
+                model_id = item["id"]
+                # bioimageio.core.load_resource_description(model_id)
+                out_folder = os.path.join(MODEL_DIR, model_id)
+                out_path = os.path.join(out_folder, "model")
+                if os.path.exists(out_path + "/rdf.yaml"):
+                    continue
+                os.makedirs(out_folder, exist_ok=True)
+                bioimageio.core.export_resource_package(model_id, output_path=out_path+".zip")
+                with zipfile.ZipFile(out_path+".zip","r") as zip_ref:
+                    zip_ref.extractall(out_path)
+                os.remove(out_path+".zip")
+                print(f"Model ({item['id']})downloaded: {out_path}")
             except Exception as exp:
                 print(f"Failed to fetch model: {item['id']}, error: {exp}")
