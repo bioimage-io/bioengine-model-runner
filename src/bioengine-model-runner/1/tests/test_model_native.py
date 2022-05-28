@@ -1,8 +1,9 @@
 import sys
 import os
 import asyncio
+
 sys.path.append(os.path.dirname(__file__))
-sys.path.append(os.path.dirname(__file__)+"/../")
+sys.path.append(os.path.dirname(__file__) + "/../")
 import numpy as np
 from model import TritonPythonModel
 
@@ -17,9 +18,11 @@ async def test_execute_model(model):
         result["outputs"][0].shape
     )
     print("Test passed")
-    
+
+
 if __name__ == "__main__":
     from multiprocessing import freeze_support
+
     freeze_support()
     model = TritonPythonModel()
     model.initialize({"model_config": "{}", "model_instance_kind": "CPU"})

@@ -1,4 +1,3 @@
-
 import bioimageio.spec
 import os
 import zipfile
@@ -16,12 +15,14 @@ out_path = os.path.join(out_folder, "model")
 rdf_path = os.path.join(out_path, "rdf.yaml")
 if not os.path.exists(rdf_path):
     os.makedirs(out_folder, exist_ok=True)
-    bioimageio.core.export_resource_package(model_id, output_path=out_path+".zip")
-    with zipfile.ZipFile(out_path+".zip","r") as zip_ref:
+    bioimageio.core.export_resource_package(model_id, output_path=out_path + ".zip")
+    with zipfile.ZipFile(out_path + ".zip", "r") as zip_ref:
         zip_ref.extractall(out_path)
-    os.remove(out_path+".zip")
+    os.remove(out_path + ".zip")
 
-rdf_path = "/data/s3/model-snapshots/bioimageio-models/10.5281/zenodo.5874741/model/rdf.yaml"
+rdf_path = (
+    "/data/s3/model-snapshots/bioimageio-models/10.5281/zenodo.5874741/model/rdf.yaml"
+)
 
 devices = "cpu"
 weight_format = "torchscript"
@@ -32,8 +33,6 @@ pred_pipeline = create_prediction_pipeline(
 print("model loaded: ", rdf_path)
 
 input_ = np.zeros([1, 1, 16, 144, 144], dtype=np.uint8)
-input_tensors = [
-    xr.DataArray(input_, dims=tuple(model_resource.inputs[0].axes))
-]
+input_tensors = [xr.DataArray(input_, dims=tuple(model_resource.inputs[0].axes))]
 output_tensors = pred_pipeline(*input_tensors)
 print(output_tensors)

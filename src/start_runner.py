@@ -28,7 +28,10 @@ logger.setLevel(logging.INFO)
 
 DEFAULT_DEVICES = os.environ.get("BIOIMAGEIO_DEFAULT_DEVICES", "cpu")
 
-logger.info("GPU available: %s, Default Devices: %s", torch.cuda.is_available(), DEFAULT_DEVICES)
+logger.info(
+    "GPU available: %s, Default Devices: %s", torch.cuda.is_available(), DEFAULT_DEVICES
+)
+
 
 def downlod_model(model_id, model_dir):
     out_folder = os.path.join(model_dir, model_id)
@@ -41,7 +44,12 @@ def downlod_model(model_id, model_dir):
 
 
 def start_model_worker(
-    model_id, input_queue, output_queue, lock, devices=DEFAULT_DEVICES, weight_format=None
+    model_id,
+    input_queue,
+    output_queue,
+    lock,
+    devices=DEFAULT_DEVICES,
+    weight_format=None,
 ):
     out_path = downlod_model(
         model_id, os.environ.get("BIOIMAGEIO_MODEL_DIR", "./bioimageio-models")

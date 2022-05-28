@@ -1,6 +1,7 @@
 # patch for fix "urlopen error [SSL: CERTIFICATE_VERIFY_FAILED]" error
 import shutil
 import ssl
+
 ssl._create_default_https_context = ssl._create_unverified_context
 import json
 import numpy as np
@@ -24,16 +25,22 @@ import torch
 
 from imjoy_rpc.hypha import RPC
 import msgpack
+import requests
+import concurrent.futures
 
 import aioprocessing
+
 # triton_python_backend_utils is available in every Triton Python model. You
 # need to use this module to create inference requests and responses. It also
 # contains some utility functions for extracting information from model_config
 # and converting Triton input/output types to numpy types.
 import triton_python_backend_utils as pb_utils
+from ruamel.yaml import YAML
+
+yaml = YAML(typ="safe")
 
 # This is required for pytorch to work with multiprocessing
-torch.multiprocessing.set_start_method('spawn', force=True)
+torch.multiprocessing.set_start_method("spawn", force=True)
 
 logging.basicConfig(
     stream=sys.stdout,
@@ -52,27 +59,96 @@ if model_snapshots_directory:
     ), f'Model snapshots directory "{model_snapshots_directory}" (from env virable MODEL_SNAPSHOTS_DIRECTORY) does not exist'
     MODEL_DIR = os.path.join(model_snapshots_directory, "bioimageio-models")
 else:
-    MODEL_DIR = os.path.join(
-        os.path.dirname(__file__), "../../../bioimageio-models"
-    )
+    MODEL_DIR = os.path.join(os.path.dirname(__file__), "../../../bioimageio-models")
 
 os.makedirs(MODEL_DIR, exist_ok=True)
 os.environ["BIOIMAGEIO_CACHE_PATH"] = os.environ.get("BIOIMAGEIO_CACHE_PATH", MODEL_DIR)
+os.environ["BIOIMAGEIO_USE_CACHE"] = "no"
 
-print(f"BioEngine Model Runner (bioimageio.spec: {bioimageio.spec.__version__}, bioimageio.core: {bioimageio.core.__version__}, MODEL_DIR: {MODEL_DIR})")
+print(
+    f"BioEngine Model Runner (bioimageio.spec: {bioimageio.spec.__version__}, bioimageio.core: {bioimageio.core.__version__}, MODEL_DIR: {MODEL_DIR})"
+)
 
 # The import should be set after the import
 import bioimageio.core
 
 downloading_models = []
+executor = concurrent.futures.ThreadPoolExecutor(
+    max_workers=3,
+)
+
+watching_model_updates = False
 
 
-async def downlod_model(model_id):
+async def watch_model_updates(executor=None):
+    loop = asyncio.get_running_loop()
+    global watching_model_updates
+    watching_model_updates = True
+    while True:
+        try:
+
+            def get_collection():
+                response = requests.get(
+                    "https://raw.githubusercontent.com/bioimage-io/collection-bioimage-io/gh-pages/rdf.json"
+                )
+                summary = json.loads(response.content)
+                collection = summary["collection"]
+                return collection
+
+            collection = await loop.run_in_executor(executor, get_collection)
+
+            logger.info(
+                "Updating models from bioimage.io collection (total items: %d)",
+                len(collection),
+            )
+            for item in collection:
+                if item["type"] == "model" and item["id"].startswith("10.5281/zenodo."):
+                    model_id = item["id"]
+                    try:
+                        await downlod_model(
+                            model_id,
+                            latest_rdf_source=item["rdf_source"],
+                            executor=executor,
+                        )
+                    except Exception as exp:
+                        logger.error("Failed to download %s, error: %s", model_id, exp)
+                    else:
+                        logger.info(f"Model {model_id} is up to date.")
+                    await asyncio.sleep(0.2)
+        except Exception:
+            logger.exception("Failed to fetch models")
+            await asyncio.sleep(1 * 60)
+        else:
+            await asyncio.sleep(10 * 60)  # Download again in 30 minutes
+
+
+async def downlod_model(model_id, latest_rdf_source=None, executor=None):
     out_folder = os.path.join(MODEL_DIR, model_id)
     out_path = os.path.join(out_folder, "model")
     rdf_path = os.path.join(out_path, "rdf.yaml")
     if os.path.exists(rdf_path):
-        return rdf_path
+        if latest_rdf_source:
+            # Check if it's the latest
+            try:
+                with open(rdf_path, "rb") as file:
+                    rdf = yaml.load(file.read())
+                if rdf["rdf_source"] == latest_rdf_source:
+                    logger.info("Skip downloading model %s", model_id)
+                    return rdf_path
+                else:
+                    logger.error(
+                        "Model is out dated: %s, trying to download it again from %s",
+                        model_id,
+                        rdf["rdf_source"],
+                    )
+            except Exception:
+                # Remove it and re-download
+                logger.error(
+                    "Failed to load %s, remove it and try to download again", rdf_path
+                )
+                shutil.rmtree(out_path)
+        else:
+            return rdf_path
     os.makedirs(out_folder, exist_ok=True)
     try:
         if model_id not in downloading_models:
@@ -81,12 +157,16 @@ async def downlod_model(model_id):
             loop = asyncio.get_running_loop()
 
             def download(model_id, out_path):
-                bioimageio.core.export_resource_package(model_id, output_path=out_path+".zip")
-                with zipfile.ZipFile(out_path+".zip","r") as zip_ref:
+                bioimageio.core.export_resource_package(
+                    model_id, output_path=out_path + ".zip"
+                )
+                shutil.rmtree(out_path)
+                with zipfile.ZipFile(out_path + ".zip", "r") as zip_ref:
                     zip_ref.extractall(out_path)
-                os.remove(out_path+".zip")
-            await loop.run_in_executor(None, download, model_id, out_path)
-            
+                os.remove(out_path + ".zip")
+
+            await loop.run_in_executor(executor, download, model_id, out_path)
+
             downloading_models.remove(model_id)
         else:
             logger.info("Model is already downloading %s", model_id)
@@ -97,6 +177,7 @@ async def downlod_model(model_id):
         logger.error("Failed to download model %s", model_id)
     return rdf_path
 
+
 def model_exists(model_id):
     out_folder = os.path.join(MODEL_DIR, model_id)
     out_path = os.path.join(out_folder, "model", "rdf.yaml")
@@ -105,9 +186,11 @@ def model_exists(model_id):
     else:
         return False
 
+
 def get_model_rdf(model_id):
     raw_resource = bioimageio.core.load_raw_resource_description(model_id)
     return serialize_raw_resource_description_to_dict(raw_resource)
+
 
 def start_model_worker(
     model_id, input_queue, output_queue, lock, devices="cpu", weight_format=None
@@ -115,14 +198,17 @@ def start_model_worker(
     try:
         model_resource = bioimageio.core.load_resource_description(model_id)
         pred_pipeline = create_prediction_pipeline(
-            bioimageio_model=model_resource, devices=[devices], weight_format=weight_format
+            bioimageio_model=model_resource,
+            devices=[devices],
+            weight_format=weight_format,
         )
         logger.info("model loaded %s", model_id)
     except Exception:
         output_queue.put(
             {
                 "task_id": "start",
-                "error": f"Failed to load the model {model_id}: \n" + traceback.format_exc(),
+                "error": f"Failed to load the model {model_id}: \n"
+                + traceback.format_exc(),
                 "success": False,
             }
         )
@@ -174,7 +260,9 @@ def start_model_worker(
                         "success": False,
                     }
                 )
-                logger.info("Failed to run inference, error: %s", traceback.format_exc())
+                logger.info(
+                    "Failed to run inference, error: %s", traceback.format_exc()
+                )
 
 
 class TritonPythonModel:
@@ -209,8 +297,12 @@ class TritonPythonModel:
             self.devices = "cuda"
         else:
             self.devices = "cpu"
-        
-        logger.info("Running bioengine model runner using devices: `%s` (GPU available: %s)", self.devices, gpu_available)
+
+        logger.info(
+            "Running bioengine model runner using devices: `%s` (GPU available: %s)",
+            self.devices,
+            gpu_available,
+        )
 
     async def execute(self, requests):
         """`execute` must be implemented in every Python model. `execute`
@@ -234,6 +326,8 @@ class TritonPythonModel:
           be the same as `requests`
         """
         loop = asyncio.get_running_loop()
+        if not watching_model_updates:
+            loop.create_task(watch_model_updates(executor=executor))
         responses = []
         for request in requests:
             try:
@@ -252,7 +346,7 @@ class TritonPythonModel:
 
                 model_path = model_exists(model_id)
                 if not model_path:
-                    asyncio.ensure_future(downlod_model(model_id))
+                    asyncio.ensure_future(downlod_model(model_id, executor=executor))
                     return {
                         "error": f"Model {model_id} is not ready for inference, please try again later.",
                         "success": False,
@@ -261,10 +355,14 @@ class TritonPythonModel:
                 if "inputs" in kwargs:
                     inputs = kwargs.get("inputs")
                     weight_format = kwargs.get("weight_format")
-                    result = await self.execute_model(inputs, model_id, weight_format=weight_format)
+                    result = await self.execute_model(
+                        inputs, model_id, weight_format=weight_format
+                    )
                 if "return_rdf" in kwargs:
-                    result["rdf"] = await loop.run_in_executor(None, get_model_rdf, model_id)
-                
+                    result["rdf"] = await loop.run_in_executor(
+                        None, get_model_rdf, model_id
+                    )
+
                 data = _rpc.encode(result)
                 bytes_data = msgpack.dumps(data)
                 outputs_bytes_data = np.array([bytes_data], dtype=np.object_)
@@ -286,7 +384,7 @@ class TritonPythonModel:
         # You should return a list of pb_utils.InferenceResponse. Length
         # of this list must match the length of `requests` list.
         return responses
-        
+
     async def load_model(self, model_id, weight_format=None):
         assert not model_id.startswith(
             "http"
@@ -315,16 +413,19 @@ class TritonPythonModel:
         self.current_model_signature = f"{model_id}:{weight_format}"
 
     async def get_current_model(self):
-        return {"model_id": self.current_model_signature and self.current_model_signature.split(':')[0]}
+        return {
+            "model_id": self.current_model_signature
+            and self.current_model_signature.split(":")[0]
+        }
 
     async def execute_model(self, inputs, model_id, weight_format=None):
         assert not model_id.startswith(
             "http"
         ), "HTTP model url is not allowed, please use Zenodo DOI or nickname."
-        
+
         model_path = model_exists(model_id)
         if not model_path:
-            asyncio.ensure_future(downlod_model(model_id))
+            asyncio.ensure_future(downlod_model(model_id, executor=executor))
             return {
                 "error": f"Model {model_id} is not ready for inference, please try again later.",
                 "success": False,

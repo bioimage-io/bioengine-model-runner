@@ -28,19 +28,19 @@ import numpy as np
 import struct
 
 TRITON_STRING_TO_NUMPY = {
-    'TYPE_BOOL': bool,
-    'TYPE_UINT8': np.uint8,
-    'TYPE_UINT16': np.uint16,
-    'TYPE_UINT32': np.uint32,
-    'TYPE_UINT64': np.uint64,
-    'TYPE_INT8': np.int8,
-    'TYPE_INT16': np.int16,
-    'TYPE_INT32': np.int32,
-    'TYPE_INT64': np.int64,
-    'TYPE_FP16': np.float16,
-    'TYPE_FP32': np.float32,
-    'TYPE_FP64': np.float64,
-    'TYPE_STRING': np.object_
+    "TYPE_BOOL": bool,
+    "TYPE_UINT8": np.uint8,
+    "TYPE_UINT16": np.uint16,
+    "TYPE_UINT32": np.uint32,
+    "TYPE_UINT64": np.uint64,
+    "TYPE_INT8": np.int8,
+    "TYPE_INT16": np.int16,
+    "TYPE_INT32": np.int32,
+    "TYPE_INT64": np.int64,
+    "TYPE_FP16": np.float16,
+    "TYPE_FP32": np.float32,
+    "TYPE_FP64": np.float64,
+    "TYPE_STRING": np.object_,
 }
 
 
@@ -70,10 +70,9 @@ def serialize_byte_tensor(input_tensor):
     # If the input is a tensor of string/bytes objects, then must flatten those
     # into a 1-dimensional array containing the 4-byte byte size followed by the
     # actual element bytes. All elements are concatenated together in "C" order.
-    if (input_tensor.dtype == np.object_) or (input_tensor.dtype.type
-                                              == np.bytes_):
+    if (input_tensor.dtype == np.object_) or (input_tensor.dtype.type == np.bytes_):
         flattened_ls = []
-        for obj in np.nditer(input_tensor, flags=["refs_ok"], order='C'):
+        for obj in np.nditer(input_tensor, flags=["refs_ok"], order="C"):
             # If directly passing bytes to BYTES type,
             # don't convert it to str as Python will encode the
             # bytes which may distort the meaning
@@ -81,12 +80,12 @@ def serialize_byte_tensor(input_tensor):
                 if type(obj.item()) == bytes:
                     s = obj.item()
                 else:
-                    s = str(obj.item()).encode('utf-8')
+                    s = str(obj.item()).encode("utf-8")
             else:
                 s = obj.item()
             flattened_ls.append(struct.pack("<I", len(s)))
             flattened_ls.append(s)
-        flattened = b''.join(flattened_ls)
+        flattened = b"".join(flattened_ls)
         return flattened
     return None
 
@@ -116,7 +115,7 @@ def deserialize_bytes_tensor(encoded_tensor):
         sb = struct.unpack_from("<{}s".format(l), val_buf, offset)[0]
         offset += l
         strs.append(sb)
-    return (np.array(strs, dtype=np.object_))
+    return np.array(strs, dtype=np.object_)
 
 
 def get_input_tensor_by_name(inference_request, name):
@@ -180,10 +179,10 @@ def get_input_config_by_name(model_config, name):
         A dictionary containing all the properties for a given input
         name, or None if no input with this name exists
     """
-    if 'input' in model_config:
-        inputs = model_config['input']
+    if "input" in model_config:
+        inputs = model_config["input"]
         for input_properties in inputs:
-            if input_properties['name'] == name:
+            if input_properties["name"] == name:
                 return input_properties
 
     return None
@@ -204,10 +203,10 @@ def get_output_config_by_name(model_config, name):
         A dictionary containing all the properties for a given output
         name, or None if no output with this name exists
     """
-    if 'output' in model_config:
-        outputs = model_config['output']
+    if "output" in model_config:
+        outputs = model_config["output"]
         for output_properties in outputs:
-            if output_properties['name'] == name:
+            if output_properties["name"] == name:
                 return output_properties
 
     return None
