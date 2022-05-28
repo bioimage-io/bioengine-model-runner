@@ -1,0 +1,1 @@
+cp -r src/bioengine-model-runner /data/s3/model-repository/

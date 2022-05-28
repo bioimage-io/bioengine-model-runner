@@ -136,6 +136,7 @@ def start_model_worker(
             start_time = time.time()
             if task_info["type"] == "quit":
                 output_queue.put({"task_id": "quit", "success": True})
+                logger.info("Quit model process: %s", task_info["model_id"])
                 break
             try:
                 assert model_id == task_info["model_id"]
@@ -165,16 +166,6 @@ def start_model_worker(
             except KeyboardInterrupt:
                 logger.info("Terminating by CTRL-C")
                 break
-            except RuntimeError:
-                # E.g. out of memory error
-                output_queue.put(
-                    {
-                        "task_id": task_info["task_id"],
-                        "error": traceback.format_exc(),
-                        "success": False,
-                    }
-                )
-                break
             except Exception:
                 output_queue.put(
                     {
@@ -183,6 +174,7 @@ def start_model_worker(
                         "success": False,
                     }
                 )
+                logger.info("Failed to run inference, error: %s", traceback.format_exc())
 
 
 class TritonPythonModel:
@@ -271,7 +263,8 @@ class TritonPythonModel:
                     weight_format = kwargs.get("weight_format")
                     result = await self.execute_model(inputs, model_id, weight_format=weight_format)
                 if "return_rdf" in kwargs:
-                    result["rdf"] = await loop.run_in_executor(None, get_model_rdf, model_path)
+                    result["rdf"] = await loop.run_in_executor(None, get_model_rdf, model_id)
+                
                 data = _rpc.encode(result)
                 bytes_data = msgpack.dumps(data)
                 outputs_bytes_data = np.array([bytes_data], dtype=np.object_)

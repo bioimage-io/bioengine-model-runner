@@ -20,6 +20,9 @@ os.environ["BIOIMAGEIO_CACHE_PATH"] = os.environ.get("BIOIMAGEIO_CACHE_PATH", MO
 
 # The import should be set after the import
 import bioimageio.core
+from bioimageio.spec import serialize_raw_resource_description_to_dict
+
+TRITON_MODEL_DIR = "./model-repository"
 
 if __name__ == "__main__":
 
@@ -33,13 +36,20 @@ if __name__ == "__main__":
                 # bioimageio.core.load_resource_description(model_id)
                 out_folder = os.path.join(MODEL_DIR, model_id)
                 out_path = os.path.join(out_folder, "model")
-                if os.path.exists(out_path + "/rdf.yaml"):
-                    continue
-                os.makedirs(out_folder, exist_ok=True)
-                bioimageio.core.export_resource_package(model_id, output_path=out_path+".zip")
-                with zipfile.ZipFile(out_path+".zip","r") as zip_ref:
-                    zip_ref.extractall(out_path)
-                os.remove(out_path+".zip")
-                print(f"Model ({item['id']})downloaded: {out_path}")
+                rdf_path = os.path.join(out_path, "rdf.yaml")
+                if not os.path.exists(rdf_path):
+                    os.makedirs(out_folder, exist_ok=True)
+
+                    bioimageio.core.export_resource_package(model_id, output_path=out_path+".zip")
+                    with zipfile.ZipFile(out_path+".zip","r") as zip_ref:
+                        zip_ref.extractall(out_path)
+                    os.remove(out_path+".zip")
+                    print(f"Model ({item['id']})downloaded: {out_path}")
+                
+                raw_resource = bioimageio.core.load_raw_resource_description(rdf_path)
+                model_dict = serialize_raw_resource_description_to_dict(raw_resource)
+                
+                print(model_dict['weights'].keys())
+
             except Exception as exp:
                 print(f"Failed to fetch model: {item['id']}, error: {exp}")
