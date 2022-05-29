@@ -355,9 +355,15 @@ class TritonPythonModel:
                 if "inputs" in kwargs:
                     inputs = kwargs.get("inputs")
                     weight_format = kwargs.get("weight_format")
-                    result = await self.execute_model(
-                        inputs, model_id, weight_format=weight_format
-                    )
+                    try:
+                        result = await self.execute_model(
+                            inputs, model_id, weight_format=weight_format
+                        )
+                    except Exception:
+                        result = {
+                            "error": traceback.format_exc(),
+                            "success": False,
+                        }
                 if "return_rdf" in kwargs:
                     result["rdf"] = await loop.run_in_executor(
                         None, get_model_rdf, model_id
