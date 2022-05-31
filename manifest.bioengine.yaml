@@ -15,7 +15,7 @@ collection:
  - id: 10.5281/zenodo.5764892
  - id: 10.5281/zenodo.6200635
  - id: 10.5281/zenodo.6338614
- - id: 10.5281/zenodo.6348084
+#  - id: 10.5281/zenodo.6348084 # disable unsupported tensorflow 1.15 model
  - id: 10.5281/zenodo.5914248
  - id: 10.5281/zenodo.6348728
  - id: 10.5281/zenodo.5749843
