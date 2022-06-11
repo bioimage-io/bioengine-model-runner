@@ -1,0 +1,28 @@
+name: "{{ model_name }}"
+backend: "{{ backend }}"
+{% if backend != "onnxruntime" %}
+max_batch_size : 1
+input [{% for input in inputs %}
+  {
+    name: "{{ input['name'] }}"
+    data_type: {{ input['dtype'] }}
+    dims: {{ input.dims }}
+  } {% if not loop.last %}, {% endif %}{% endfor %}
+]
+output [{% for output in outputs %}
+  {
+    name: "{{ output['name'] }}"
+    data_type: {{ output['dtype'] }}
+    dims: {{ output.dims }}
+  }{% if not loop.last %}, {% endif %}{% endfor %}
+]
+{% endif %}
+
+instance_group [{ count: 1, kind: KIND_GPU }]
+
+parameters: {
+  key: "INFERENCE_MODE"
+  value: {
+    string_value: "true"
+  }
+}
