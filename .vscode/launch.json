@@ -14,5 +14,15 @@
                 "tests"
             ]
         },
+        {
+            "name": "Python: test-model-runner",
+            "type": "python",
+            "request": "launch",
+            "module": "pytest",
+            "args": [
+                "-s",
+                "tests/test_model_runner.py"
+            ]
+        }
     ]
 }

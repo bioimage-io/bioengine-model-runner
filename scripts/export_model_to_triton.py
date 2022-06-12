@@ -122,8 +122,8 @@ if __name__ == "__main__":
                     "name": f'{input_["name"]}__{idx}'
                     if backend_info["name"] == "pytorch"
                     else input_["name"],
-                    "dtype": "TYPE_FP32", 
-                    #+ np_to_triton_dtype(np.dtype(input_["data_type"])),
+                    "dtype": "TYPE_FP32",
+                    # + np_to_triton_dtype(np.dtype(input_["data_type"])),
                     "dims": [-1 for dim in input_["axes"] if dim != "b"],
                 }
                 for idx, input_ in enumerate(rdf["inputs"])

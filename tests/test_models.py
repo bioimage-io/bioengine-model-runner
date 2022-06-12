@@ -11,6 +11,7 @@ import urllib
 
 yaml = YAML(typ="safe")
 
+
 def get_models():
     response = requests.get(
         "https://raw.githubusercontent.com/bioimage-io/collection-bioimage-io/gh-pages/rdf.json"
@@ -26,9 +27,10 @@ def get_models():
             except Exception as exp:
                 print(f"Failed to fetch model: {item['id']}, error: {exp}")
                 continue
-            
+
             models.append(item)
     return models
+
 
 # All test coroutines will be treated as marked.
 pytestmark = pytest.mark.asyncio
@@ -39,6 +41,7 @@ backend_mapping = {
     "torchscript": {"name": "pytorch", "extension": ".pt"},
     "onnx": {"name": "onnxruntime", "extension": ".onnx"},
 }
+
 
 def triton_to_np_dtype(dtype):
     if dtype == "BOOL":
@@ -69,6 +72,7 @@ def triton_to_np_dtype(dtype):
         return np.object_
     return None
 
+
 def get_backend_and_source(weights):
     formats = list(weights.keys())
     supported = list(backend_mapping.keys())
@@ -85,7 +89,7 @@ def get_backend_and_source(weights):
 
 async def test_all_models():
     for model_summary in get_models():
-        model_id = model_summary['id']
+        model_id = model_summary["id"]
         response = requests.get(model_summary["rdf_source"])
         rdf = yaml.load(response.content)
         nickname = rdf["config"]["bioimageio"]["nickname"]
@@ -93,22 +97,21 @@ async def test_all_models():
         backend_info, _ = get_backend_and_source(rdf["weights"])
         if not backend_info:
             continue
-        
+
         config = await get_config(
-            server_url="http://localhost:5000",
-            model_name=nickname
+            server_url="http://localhost:5000", model_name=nickname
         )
-        
+
         input_tesors = []
-        for idx, inp in enumerate(rdf['test_inputs']):
+        for idx, inp in enumerate(rdf["test_inputs"]):
             data = np.load(io.BytesIO(requests.get(inp).content))
             # dtype = rdf['inputs'][idx]['data_type']
-            dtype = config['input'][idx]['data_type']
-            dtype = 'float32' # triton_to_np_dtype(dtype.replace('TYPE_', ''))
+            dtype = config["input"][idx]["data_type"]
+            dtype = "float32"  # triton_to_np_dtype(dtype.replace('TYPE_', ''))
             input_tesors.append(data.astype(dtype))
-        
+
         output_tesors = []
-        for idx, out in enumerate(rdf['test_outputs']):
+        for idx, out in enumerate(rdf["test_outputs"]):
             data = np.load(io.BytesIO(requests.get(out).content))
             # dtype = rdf['outputs'][idx]['data_type']
             dtype = "float32"
@@ -122,6 +125,8 @@ async def test_all_models():
             decode_bytes=True,
         )
         for idx, output in enumerate(output_tesors):
-            output_tensor_name = config['output'][idx]['name']
-            np.testing.assert_array_almost_equal(output, results[output_tensor_name], decimal=2)
+            output_tensor_name = config["output"][idx]["name"]
+            np.testing.assert_array_almost_equal(
+                output, results[output_tensor_name], decimal=2
+            )
         print(f"{model_id} ({nickname}) passed")
