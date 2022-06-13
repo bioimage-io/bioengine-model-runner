@@ -1,6 +1,7 @@
 name: "{{ model_name }}"
 backend: "{{ backend }}"
-{% if backend != "onnxruntime" %}
+platform: "{{ platform }}"
+{% if include_io_definition %}
 max_batch_size : 1
 input [{% for input in inputs %}
   {

@@ -8,14 +8,16 @@ import jinja2
 import numpy as np
 from ruamel.yaml import YAML
 import urllib
+import zipfile
 
 yaml = YAML(typ="safe")
 
 # TODO: add remaining backends, tensorflow will need conversion
 # https://github.com/triton-inference-server/backend/blob/main/README.md#backends
 backend_mapping = {
-    "torchscript": {"name": "pytorch", "extension": ".pt"},
-    "onnx": {"name": "onnxruntime", "extension": ".onnx"},
+    "torchscript": {"name": "pytorch", "platform": "pytorch_libtorch", "extension": ".pt"},
+    "onnx": {"name": "onnxruntime", "platform": "onnxruntime_onnx", "extension": ".onnx"},
+    "tensorflow_saved_model_bundle": {"name": "tensorflow", "platform": "tensorflow_savedmodel", "extension": ".savedmodel"},
 }
 
 MODELS_DIR = Path("./models")
@@ -74,9 +76,9 @@ def get_backend_and_source(weights):
             selected = format
             break
     if not selected:
-        return None, None
+        return None, None, None
 
-    return backend_mapping[selected], weights[selected]["source"]
+    return selected, backend_mapping[selected], weights[selected]["source"]
 
 
 def get_models():
@@ -101,7 +103,7 @@ def get_models():
 
 if __name__ == "__main__":
     template = jinja2.Template(
-        Path("./src/config_template.pbtxt").read_text(encoding="utf-8")
+        Path("./scripts/config_template.pbtxt").read_text(encoding="utf-8")
     )
     model_summaries = get_models()
     for model_summary in model_summaries:
@@ -115,7 +117,7 @@ if __name__ == "__main__":
             ["b" in input_["axes"] for input_ in rdf["outputs"]]
         ), "b should always exist in the inputs"
 
-        backend_info, weight_source = get_backend_and_source(rdf["weights"])
+        selected_weight_format, backend_info, weight_source = get_backend_and_source(rdf["weights"])
         if backend_info:
             inputs = [
                 {
@@ -144,17 +146,34 @@ if __name__ == "__main__":
             nickname = rdf["config"]["bioimageio"]["nickname"]
             model_dir = MODELS_DIR / nickname
             model_dir.mkdir(parents=True, exist_ok=True)
+            # TensorRT, TensorFlow saved-model, and ONNX models do not require a model configuration file because Triton can derive all the required settings automatically
+            if backend_info["name"] in ["tensorflow", "onnxruntime"]:
+                include_io_definition = False
+            else:
+                include_io_definition = True
             config_pbtxt = template.render(
                 model_name=nickname,
                 backend=backend_info["name"],
+                platform=backend_info["platform"],
                 batch_size=batch_size,
                 inputs=inputs,
                 outputs=outputs,
+                include_io_definition=include_io_definition
             )
             (model_dir / "config.pbtxt").write_text(config_pbtxt)
             version_dir = model_dir / "1"
             version_dir.mkdir(parents=True, exist_ok=True)
             weight_path = version_dir / f"model{backend_info['extension']}"
-            # download_url(weight_source, weight_path)
+            print(f"Processing {nickname}...")
+            # unzip the tensorflow bundle
+            if selected_weight_format == "tensorflow_saved_model_bundle":
+                weight_path.mkdir(exist_ok=True)
+                download_url(weight_source, str(weight_path)+".zip")
+                with zipfile.ZipFile(str(weight_path)+".zip", 'r') as zip_ref:
+                    zip_ref.extractall(weight_path)
+                os.remove(str(weight_path)+".zip")
+            else:
+                download_url(weight_source, weight_path)
+            
         else:
             print(f"Skipping model without supported weight format: {rdf['id']}")
