@@ -15,7 +15,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install tqdm requests boto3 ruamel jinja2 pytest pytest-asyncio
+          pip install tqdm requests boto3 ruamel.yaml jinja2 pytest pytest-asyncio
       - name: Convert models
         run: python scripts/export_model_to_triton.py --download-weights --upload --remove-after-upload --endpoint-url=${{ secrets.S3_ENDPOINT }} --access-key-id=${{ secrets.S3_KEY }} --secret-access-key=${{ secrets.S3_SECRET }} --bucket=model-repository --prefix=
       # - name: Create dot env file
