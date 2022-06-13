@@ -6,6 +6,7 @@ models
 bioimageio-models
 # C extensions
 *.so
+.vscode
 
 # Distribution / packaging
 .Python

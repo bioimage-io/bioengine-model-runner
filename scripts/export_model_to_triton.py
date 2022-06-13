@@ -1,5 +1,5 @@
-from genericpath import exists
 import os
+import shutil
 import requests
 import json
 from tqdm import tqdm
@@ -9,6 +9,9 @@ import numpy as np
 from ruamel.yaml import YAML
 import urllib
 import zipfile
+import argparse
+import glob
+
 
 yaml = YAML(typ="safe")
 
@@ -113,7 +116,7 @@ def get_models():
     return models
 
 
-if __name__ == "__main__":
+def convert_all(download_weights=False, upload=False, s3_client=None, bucket=None, prefix="", remove_after_upload=False, **kwargs):
     template = jinja2.Template(
         Path("./scripts/config_template.pbtxt").read_text(encoding="utf-8")
     )
@@ -175,19 +178,105 @@ if __name__ == "__main__":
                 include_io_definition=include_io_definition,
             )
             (model_dir / "config.pbtxt").write_text(config_pbtxt)
-            version_dir = model_dir / "1"
-            version_dir.mkdir(parents=True, exist_ok=True)
-            weight_path = version_dir / f"model{backend_info['extension']}"
-            print(f"Processing {nickname}...")
-            # unzip the tensorflow bundle
-            if selected_weight_format == "tensorflow_saved_model_bundle":
-                weight_path.mkdir(exist_ok=True)
-                download_url(weight_source, str(weight_path) + ".zip")
-                with zipfile.ZipFile(str(weight_path) + ".zip", "r") as zip_ref:
-                    zip_ref.extractall(weight_path)
-                os.remove(str(weight_path) + ".zip")
-            else:
-                download_url(weight_source, weight_path)
+            
+            if download_weights:
+                version_dir = model_dir / "1"
+                version_dir.mkdir(parents=True, exist_ok=True)
+                weight_path = version_dir / f"model{backend_info['extension']}"
+                
+                print(f"Processing {nickname}...")
+                # unzip the tensorflow bundle
+                if selected_weight_format == "tensorflow_saved_model_bundle":
+                    weight_path.mkdir(exist_ok=True)
+                    download_url(weight_source, str(weight_path) + ".zip")
+                    with zipfile.ZipFile(str(weight_path) + ".zip", "r") as zip_ref:
+                        zip_ref.extractall(weight_path)
+                    os.remove(str(weight_path) + ".zip")
+                else:
+                    download_url(weight_source, weight_path)
+                    
+            if upload:
+                assert s3_client
+                for file_path in glob.glob(str(model_dir / '**/*'), recursive=True):
+                    if os.path.isdir(file_path):
+                        continue
+                    print("Uploading " + file_path + " to s3...")
+                    object_name = str(file_path).lstrip(str(MODELS_DIR)).lstrip('/')
+                    s3_client.upload_file(file_path, bucket, prefix + object_name)
+                
+                if remove_after_upload:
+                    shutil.rmtree(model_dir)
 
         else:
             print(f"Skipping model without supported weight format: {rdf['id']}")
+
+
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--download-weights",
+        action="store_true",
+        help="Download weights files for each model",
+    )
+    parser.add_argument(
+        "--upload",
+        action="store_true",
+        help="Upload models to a S3 bucket",
+    )
+    
+    parser.add_argument(
+        "--remove-after-upload",
+        action="store_true",
+        help="Remove files after uploading (to save disk space, e.g. in github actions)",
+    )
+    
+    parser.add_argument(
+        "--endpoint-url",
+        type=str,
+        default=None,
+        help="set endpoint URL for S3",
+    )
+
+    parser.add_argument(
+        "--access-key-id",
+        type=str,
+        default=None,
+        help="set AccessKeyID for S3",
+    )
+    parser.add_argument(
+        "--secret-access-key",
+        type=str,
+        default=None,
+        help="set SecretAccessKey for S3",
+    )
+    
+    parser.add_argument(
+        "--bucket",
+        type=str,
+        default=None,
+        help="set s3 bucket for uploading",
+    )
+    
+    parser.add_argument(
+        "--prefix",
+        type=str,
+        default=None,
+        help="set s3 prefix for uploading",
+    )
+    
+    args = parser.parse_args()
+    if args.upload:
+        import boto3
+        assert args.endpoint_url and args.access_key_id
+        s3_client = boto3.client(
+            "s3",
+            endpoint_url=args.endpoint_url,
+            aws_access_key_id=args.access_key_id,
+            aws_secret_access_key=args.secret_access_key,
+        )
+        args.s3_url = f"{args.endpoint_url}/{args.bucket}/{args.prefix}"
+        args.s3_client = s3_client
+
+    convert_all(**vars(args))

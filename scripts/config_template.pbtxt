@@ -19,8 +19,6 @@ output [{% for output in outputs %}
 ]
 {% endif %}
 
-instance_group [{ count: 1, kind: KIND_GPU }]
-
 parameters: {
   key: "INFERENCE_MODE"
   value: {
