@@ -15,9 +15,21 @@ yaml = YAML(typ="safe")
 # TODO: add remaining backends, tensorflow will need conversion
 # https://github.com/triton-inference-server/backend/blob/main/README.md#backends
 backend_mapping = {
-    "torchscript": {"name": "pytorch", "platform": "pytorch_libtorch", "extension": ".pt"},
-    "onnx": {"name": "onnxruntime", "platform": "onnxruntime_onnx", "extension": ".onnx"},
-    "tensorflow_saved_model_bundle": {"name": "tensorflow", "platform": "tensorflow_savedmodel", "extension": ".savedmodel"},
+    "torchscript": {
+        "name": "pytorch",
+        "platform": "pytorch_libtorch",
+        "extension": ".pt",
+    },
+    "onnx": {
+        "name": "onnxruntime",
+        "platform": "onnxruntime_onnx",
+        "extension": ".onnx",
+    },
+    "tensorflow_saved_model_bundle": {
+        "name": "tensorflow",
+        "platform": "tensorflow_savedmodel",
+        "extension": ".savedmodel",
+    },
 }
 
 MODELS_DIR = Path("./models")
@@ -117,7 +129,9 @@ if __name__ == "__main__":
             ["b" in input_["axes"] for input_ in rdf["outputs"]]
         ), "b should always exist in the inputs"
 
-        selected_weight_format, backend_info, weight_source = get_backend_and_source(rdf["weights"])
+        selected_weight_format, backend_info, weight_source = get_backend_and_source(
+            rdf["weights"]
+        )
         if backend_info:
             inputs = [
                 {
@@ -158,7 +172,7 @@ if __name__ == "__main__":
                 batch_size=batch_size,
                 inputs=inputs,
                 outputs=outputs,
-                include_io_definition=include_io_definition
+                include_io_definition=include_io_definition,
             )
             (model_dir / "config.pbtxt").write_text(config_pbtxt)
             version_dir = model_dir / "1"
@@ -168,12 +182,12 @@ if __name__ == "__main__":
             # unzip the tensorflow bundle
             if selected_weight_format == "tensorflow_saved_model_bundle":
                 weight_path.mkdir(exist_ok=True)
-                download_url(weight_source, str(weight_path)+".zip")
-                with zipfile.ZipFile(str(weight_path)+".zip", 'r') as zip_ref:
+                download_url(weight_source, str(weight_path) + ".zip")
+                with zipfile.ZipFile(str(weight_path) + ".zip", "r") as zip_ref:
                     zip_ref.extractall(weight_path)
-                os.remove(str(weight_path)+".zip")
+                os.remove(str(weight_path) + ".zip")
             else:
                 download_url(weight_source, weight_path)
-            
+
         else:
             print(f"Skipping model without supported weight format: {rdf['id']}")
