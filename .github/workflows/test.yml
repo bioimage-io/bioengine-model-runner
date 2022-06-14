@@ -30,4 +30,4 @@ jobs:
           pip install bioimageio.core torch torchvision tensorflow onnxruntime
           pip install xarray imjoy-rpc aioprocessing
       - name: Test
-        run: python src/1/tests/test_model_native.py
+        run: python src/bioengine-model-runner/1/tests/test_model_native.py
