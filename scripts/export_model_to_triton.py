@@ -116,13 +116,21 @@ def get_models():
     return models
 
 
-def convert_all(download_weights=False, upload=False, s3_client=None, bucket=None, prefix="", remove_after_upload=False, **kwargs):
+def convert_all(
+    download_weights=False,
+    upload=False,
+    skip_exists=True,
+    s3_client=None,
+    bucket=None,
+    prefix="",
+    remove_after_upload=False,
+    **kwargs,
+):
     template = jinja2.Template(
         Path("./scripts/config_template.pbtxt").read_text(encoding="utf-8")
     )
     model_summaries = get_models()
     for model_summary in model_summaries:
-        model_id = model_summary["id"]
         response = requests.get(model_summary["rdf_source"])
         rdf = yaml.load(response.content)
         assert all(
@@ -131,6 +139,20 @@ def convert_all(download_weights=False, upload=False, s3_client=None, bucket=Non
         assert all(
             ["b" in input_["axes"] for input_ in rdf["outputs"]]
         ), "b should always exist in the inputs"
+
+        nickname = rdf["config"]["bioimageio"]["nickname"]
+        model_dir = MODELS_DIR / nickname
+        if upload and skip_exists:
+            try:
+                obj = s3_client.get_object(
+                    Bucket=bucket, Key=prefix + str(nickname + "/rdf.yaml")
+                )
+                exist_rdf = yaml.load(obj["Body"].read())
+                if exist_rdf["id"] == rdf["id"]:
+                    print(f"Skipping uploaded model: {rdf['id']}({nickname})")
+                    continue
+            except s3_client.exceptions.NoSuchKey:
+                pass
 
         selected_weight_format, backend_info, weight_source = get_backend_and_source(
             rdf["weights"]
@@ -160,8 +182,6 @@ def convert_all(download_weights=False, upload=False, s3_client=None, bucket=Non
             ]
 
             batch_size = 1 if "b" in rdf["inputs"][0]["axes"] else 0
-            nickname = rdf["config"]["bioimageio"]["nickname"]
-            model_dir = MODELS_DIR / nickname
             model_dir.mkdir(parents=True, exist_ok=True)
             # TensorRT, TensorFlow saved-model, and ONNX models do not require a model configuration file because Triton can derive all the required settings automatically
             if backend_info["name"] in ["tensorflow", "onnxruntime"]:
@@ -178,12 +198,13 @@ def convert_all(download_weights=False, upload=False, s3_client=None, bucket=Non
                 include_io_definition=include_io_definition,
             )
             (model_dir / "config.pbtxt").write_text(config_pbtxt)
-            
+            with open(model_dir / "rdf.yaml", "w") as fil:
+                yaml.dump(rdf, fil)
             if download_weights:
                 version_dir = model_dir / "1"
                 version_dir.mkdir(parents=True, exist_ok=True)
                 weight_path = version_dir / f"model{backend_info['extension']}"
-                
+
                 print(f"Processing {nickname}...")
                 # unzip the tensorflow bundle
                 if selected_weight_format == "tensorflow_saved_model_bundle":
@@ -194,23 +215,21 @@ def convert_all(download_weights=False, upload=False, s3_client=None, bucket=Non
                     os.remove(str(weight_path) + ".zip")
                 else:
                     download_url(weight_source, weight_path)
-                    
+
             if upload:
                 assert s3_client
-                for file_path in glob.glob(str(model_dir / '**/*'), recursive=True):
+                for file_path in glob.glob(str(model_dir / "**/*"), recursive=True):
                     if os.path.isdir(file_path):
                         continue
                     print("Uploading " + file_path + " to s3...")
-                    object_name = str(file_path).lstrip(str(MODELS_DIR)).lstrip('/')
+                    object_name = str(file_path).lstrip(str(MODELS_DIR)).lstrip("/")
                     s3_client.upload_file(file_path, bucket, prefix + object_name)
-                
+
                 if remove_after_upload:
                     shutil.rmtree(model_dir)
 
         else:
             print(f"Skipping model without supported weight format: {rdf['id']}")
-
-
 
 
 if __name__ == "__main__":
@@ -225,13 +244,19 @@ if __name__ == "__main__":
         action="store_true",
         help="Upload models to a S3 bucket",
     )
-    
+
+    parser.add_argument(
+        "--skip-exists",
+        action="store_true",
+        help="Skip the upload if the model is already exists",
+    )
+
     parser.add_argument(
         "--remove-after-upload",
         action="store_true",
         help="Remove files after uploading (to save disk space, e.g. in github actions)",
     )
-    
+
     parser.add_argument(
         "--endpoint-url",
         type=str,
@@ -251,24 +276,25 @@ if __name__ == "__main__":
         default=None,
         help="set SecretAccessKey for S3",
     )
-    
+
     parser.add_argument(
         "--bucket",
         type=str,
         default=None,
         help="set s3 bucket for uploading",
     )
-    
+
     parser.add_argument(
         "--prefix",
         type=str,
         default=None,
         help="set s3 prefix for uploading",
     )
-    
+
     args = parser.parse_args()
     if args.upload:
         import boto3
+
         assert args.endpoint_url and args.access_key_id
         s3_client = boto3.client(
             "s3",
