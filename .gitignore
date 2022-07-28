@@ -2,9 +2,11 @@
 __pycache__/
 *.py[cod]
 *$py.class
-
+models
+bioimageio-models
 # C extensions
 *.so
+.vscode
 
 # Distribution / packaging
 .Python

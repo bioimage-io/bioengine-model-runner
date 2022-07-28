@@ -6,3 +6,4 @@ onnxruntime
 xarray
 imjoy-rpc
 aioprocessing
+jinja2

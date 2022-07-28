@@ -1,0 +1,31 @@
+version: '3.7'
+
+services:
+  triton:
+    image: ghcr.io/imjoy-team/triton:22.04-py3
+    # restart: always
+    shm_size: '5gb'
+    ulimits:
+      memlock: -1
+    # deploy:
+    #   resources:
+    #       reservations:
+    #         devices:
+    #           - driver: nvidia
+    #             device_ids: ["${TRITON_GPU_DEVICE}"]
+    #             capabilities: [gpu]
+    volumes:
+      - "${MODEL_REPOSITORY}:/models"
+      - "${MODEL_SNAPSHOTS_DIRECTORY}:/model-snapshots"
+    ports:
+      - "8030:8000"
+    environment:
+      MODEL_SNAPSHOTS_DIRECTORY: /model-snapshots
+      TF_FORCE_GPU_ALLOW_GROWTH: "true"
+    entrypoint: ""
+    command: bash -c "tritonserver --model-repository=/models --log-verbose=1 --model-control-mode=poll --exit-on-error=false --strict-model-config=false --repository-poll-secs=10"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/v2/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 100
