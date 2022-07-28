@@ -20,7 +20,7 @@ async def test_model():
     }
     ret = await execute(
         [kwargs],
-        server_url="http://localhost:8000",
+        server_url="http://localhost:8030",
         model_name="bioengine-model-runner",
         serialization="imjoy",
     )

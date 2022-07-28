@@ -142,11 +142,17 @@ class TritonPythonModel:
                         model_resource = bioimageio.core.load_raw_resource_description(
                             model_id
                         )
+                        for s in model_resource.inputs:
+                            s.root_path =  model_resource.root_path
+                        for s in model_resource.outputs:
+                            s.root_path =  model_resource.root_path
+                        
+
                         pred_pipeline = create_prediction_pipeline(
                             bioimageio_model=model_resource,
                             model_adapter=TritonModelAdapter(
                                 server_url="127.0.0.1:8000",
-                                model_id=model_id,
+                                model_id=model_resource.config["bioimageio"]["nickname"],
                                 model_version="1",
                                 model_resource=model_resource,
                             ),

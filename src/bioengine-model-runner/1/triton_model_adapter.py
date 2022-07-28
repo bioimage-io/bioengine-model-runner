@@ -16,20 +16,23 @@ class TritonModelAdapter(ModelAdapter):
         self._model_resource = model_resource
         self._server_url = server_url
         assert not server_url.startswith("http"), "server url should not include schema"
-
-    def _load(self, *, devices: Optional[Sequence[str]] = None) -> None:
         with InferenceServerClient(self._server_url, verbose=True) as client:
             response = client.get_model_config(self._model_id)
             self._tri_model_info = response
+
+    def _prepare_model(self, bioimageio_model):
+        return bioimageio_model
+
+    def _load(self, *, devices: Optional[Sequence[str]] = None) -> None:
+        pass
 
     def _unload(self) -> None:
         pass
 
     def _forward(self, *input_tensors: xr.DataArray) -> List[xr.DataArray]:
-
-        output_names = [o["name"] for o in self._tri_model_info["outputs"]]
+        output_names = [o["name"] for o in self._tri_model_info["output"]]
         input_tensors = [
-            pb_utils.Tensor(ip["name"], ip_tensor)
+            pb_utils.Tensor(ip["name"], ip_tensor.to_numpy())
             for ip, ip_tensor in zip(self._tri_model_info["input"], input_tensors)
         ]
 
