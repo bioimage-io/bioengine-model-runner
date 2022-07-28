@@ -151,6 +151,7 @@ def convert_all(
                 exist_rdf = yaml.load(obj["Body"].read())
                 if exist_rdf["id"] == rdf["id"]:
                     print(f"Skipping uploaded model: {rdf['id']}({nickname})")
+                    count += 1
                     continue
             except s3_client.exceptions.NoSuchKey:
                 pass
