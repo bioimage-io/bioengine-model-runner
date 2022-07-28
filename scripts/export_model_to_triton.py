@@ -131,6 +131,7 @@ def convert_all(
     )
     model_summaries = get_models()
     count = 0
+    converted_models = []
     for model_summary in model_summaries:
         response = requests.get(model_summary["rdf_source"])
         rdf = yaml.load(response.content)
@@ -152,6 +153,7 @@ def convert_all(
                 if exist_rdf["id"] == rdf["id"]:
                     print(f"Skipping uploaded model: {rdf['id']}({nickname})")
                     count += 1
+                    converted_models.append(rdf["id"])
                     continue
             except s3_client.exceptions.NoSuchKey:
                 pass
@@ -230,9 +232,27 @@ def convert_all(
                 if remove_after_upload:
                     shutil.rmtree(model_dir)
             count += 1
+            converted_models.append("/".join(rdf["id"].split("/")[:2]))
         else:
             print(f"Skipping model without supported weight format: {rdf['id']} (weights formats: {list(rdf['weights'].keys())}")
     print(f"{len(model_summaries)} models in total, {count} models converted, {len(model_summaries) - count} skipped")
+    
+    manifest = {
+        "name": "BioEngine Model Repository",
+        "type": "collection",
+        "description": "Converted models in the model repository",
+        "tags": [],
+        "version": "0.2.0",
+        "format_version": "0.2.1",
+        "collection": [{"id": i} for i in converted_models]
+    }
+    os.makedirs("dist", exist_ok=True)
+    # save it to json
+    with open("dist/manifest.bioengine.json", "w") as fil:
+        fil.write(json.dumps(manifest))
+    # save it to yaml
+    with open("dist/manifest.bioengine.yaml", "w") as fil:
+        yaml.dump(manifest, fil)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
