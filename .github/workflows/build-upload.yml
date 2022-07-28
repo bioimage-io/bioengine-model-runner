@@ -18,9 +18,10 @@ jobs:
           pip install numpy tqdm requests boto3 ruamel.yaml jinja2 pytest pytest-asyncio
       - name: Convert models
         run: python scripts/export_model_to_triton.py --download-weights --upload --skip-exists --remove-after-upload --endpoint-url=${{ secrets.S3_ENDPOINT }} --access-key-id=${{ secrets.S3_KEY }} --secret-access-key=${{ secrets.S3_SECRET }} --bucket=model-repository --prefix=
-      # - name: Create dot env file
-      #   run: |
-      #     echo MODEL_REPOSITORY="$(pwd)/models" > .env
-      #     echo MODEL_SNAPSHOTS_DIRECTORY="$(pwd)/model-snapshots" >> .env
-      # - run: docker-compose up -d
-      # - run: pytest tests
+      - name: Deploy model repository manifest to gh-pages 🚀
+        if: github.ref == 'refs/heads/main'
+        uses: JamesIves/github-pages-deploy-action@v4.2.3
+        with:
+          clean: false
+          branch: gh-pages
+          folder: dist
