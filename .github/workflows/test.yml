@@ -20,17 +20,3 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2.4.0
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2.3.1
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip boto3 boto_rsync
-      #     pip install bioimageio.core torch torchvision tensorflow onnxruntime
-      #     pip install xarray imjoy-rpc aioprocessing
-      # - name: Test
-      #   run: python -V
-      - name: Copy model runner to the model repository
-        run: |
-          boto_rsync --access-key=${{ secrets.S3_KEY }} --secret-key=${{ secrets.S3_SECRET }} --endpoint=${{ secrets.S3_ENDPOINT }} ./src/bioengine-model-runner s3://model-repository/bioengine-model-runner
