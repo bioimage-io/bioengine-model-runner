@@ -132,6 +132,7 @@ def convert_all(
     model_summaries = get_models()
     count = 0
     converted_models = []
+    conversion_logs = []
     for model_summary in model_summaries:
         response = requests.get(model_summary["rdf_source"])
         rdf = yaml.load(response.content)
@@ -232,9 +233,11 @@ def convert_all(
                 if remove_after_upload:
                     shutil.rmtree(model_dir)
             count += 1
-            converted_models.append("/".join(rdf["id"].split("/")[:2]))
+            converted_models.append(rdf["id"])
         else:
-            print(f"Skipping model without supported weight format: {rdf['id']} (weights formats: {list(rdf['weights'].keys())}")
+            skip_msg= f"Skipping model without supported weight format: {rdf['id']} (weights formats: {list(rdf['weights'].keys())}"
+            print(skip_msg)
+            conversion_logs.append(skip_msg)
     print(f"{len(model_summaries)} models in total, {count} models converted, {len(model_summaries) - count} skipped")
     
     manifest = {
@@ -244,7 +247,8 @@ def convert_all(
         "tags": [],
         "version": "0.2.0",
         "format_version": "0.2.1",
-        "collection": [{"id": i} for i in converted_models]
+        "collection": [{"id": "/".join(i.split("/")[:2])} for i in converted_models],
+        "conversion_logs": conversion_logs,
     }
     os.makedirs("dist", exist_ok=True)
     # save it to json
