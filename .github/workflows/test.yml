@@ -20,14 +20,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2.4.0
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2.3.1
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install bioimageio.core torch torchvision tensorflow onnxruntime
-          pip install xarray imjoy-rpc aioprocessing
-      - name: Test
-        run: python -V
+      - uses: jakejarvis/s3-sync-action@master
+        env:
+          AWS_S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }} 
+          AWS_S3_BUCKET: model-repository
+          AWS_ACCESS_KEY_ID: ${{ secrets.S3_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET }}
+          AWS_REGION: 'us-west-1'   # optional: defaults to us-east-1
+          SOURCE_DIR: './src/bioengine-model-runner'      # optional: defaults to entire repository
+          DEST_DIR: "bioengine-model-runner"
