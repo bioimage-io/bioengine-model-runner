@@ -1,5 +1,11 @@
 name: Build and Upload Models
-on: push
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron:  '0 1,13 * * *'
 
 jobs:
   # Label of the container job
