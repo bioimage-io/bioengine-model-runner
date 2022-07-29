@@ -43,18 +43,6 @@ logging.basicConfig(
 logger = logging.getLogger("bioengine-runner")
 logger.setLevel(logging.INFO)
 
-# model_snapshots_directory = os.environ.get("MODEL_SNAPSHOTS_DIRECTORY")
-# if model_snapshots_directory:
-#     assert os.path.exists(
-#         model_snapshots_directory
-#     ), f'Model snapshots directory "{model_snapshots_directory}" (from env virable MODEL_SNAPSHOTS_DIRECTORY) does not exist'
-#     MODEL_DIR = os.path.join(model_snapshots_directory, "bioimageio-models")
-# else:
-#     MODEL_DIR = os.path.join(os.path.dirname(__file__), "../../../bioimageio-models")
-
-# os.makedirs(MODEL_DIR, exist_ok=True)
-# os.environ["BIOIMAGEIO_CACHE_PATH"] = os.environ.get("BIOIMAGEIO_CACHE_PATH", MODEL_DIR)
-# os.environ["BIOIMAGEIO_USE_CACHE"] = "no"
 
 print(
     f"BioEngine Model Runner (bioimageio.spec: {bioimageio.spec.__version__}, bioimageio.core: {bioimageio.core.__version__})"

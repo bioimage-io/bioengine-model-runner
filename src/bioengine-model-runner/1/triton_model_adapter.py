@@ -6,7 +6,7 @@ import triton_python_backend_utils as pb_utils
 from tritonclient.http import InferenceServerClient
 
 from typing import List, Optional, Sequence
-
+import cupy
 
 class TritonModelAdapter(ModelAdapter):
     def __init__(self, server_url, model_id, model_version, model_resource):
@@ -48,12 +48,16 @@ class TritonModelAdapter(ModelAdapter):
             raise pb_utils.TritonModelException(inference_response.error().message())
         else:
             # Extract the output tensors from the inference response.
-            outputs = [
-                pb_utils.get_output_tensor_by_name(
+            outputs = []
+
+            for output_name in output_names:
+                t = pb_utils.get_output_tensor_by_name(
                     inference_response, output_name
-                ).as_numpy()
-                for output_name in output_names
-            ]
+                )
+                if t.is_cpu():
+                    outputs.append(t.as_numpy())
+                else:
+                    outputs.append(cupy.asnumpy(cupy.fromDlpack(t.to_dlpack())))
 
             outputs = [
                 xr.DataArray(output, dims=tuple(ax.axes))
