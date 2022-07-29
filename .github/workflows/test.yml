@@ -28,3 +28,4 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET }}
           AWS_REGION: 'us-west-1'   # optional: defaults to us-east-1
           SOURCE_DIR: './src/bioengine-model-runner'      # optional: defaults to entire repository
+          DEST_DIR: "bioengine-model-runner"
