@@ -12,6 +12,10 @@ jobs:
   build-and-upload:
     # You must use a Linux environment when using service containers or container jobs
     runs-on: ubuntu-latest
+    # These permissions are needed to interact with GitHub's OIDC Token endpoint.
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - uses: actions/checkout@v2.4.0
       - name: Set up Python
