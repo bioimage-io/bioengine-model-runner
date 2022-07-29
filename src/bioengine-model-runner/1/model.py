@@ -99,9 +99,9 @@ class TritonPythonModel:
             assert "model_id" in kwargs, "model_id must be provided"
             result = {}
             model_id = kwargs["model_id"]
+            inputs = kwargs.get("inputs")
 
-            if "inputs" in kwargs:
-                inputs = kwargs.get("inputs")
+            if inputs:
                 logger.info("Running model %s...", model_id)
                 # weight_format = kwargs.get("weight_format")
                 try:
