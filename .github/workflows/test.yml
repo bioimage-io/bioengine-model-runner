@@ -20,3 +20,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2.4.0
+      - uses: jakejarvis/s3-sync-action@master
+        env:
+          AWS_S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }} 
+          AWS_S3_BUCKET: model-repository
+          AWS_ACCESS_KEY_ID: ${{ secrets.S3_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET }}
+          AWS_REGION: 'us-west-1'   # optional: defaults to us-east-1
+          SOURCE_DIR: './src/bioengine-model-runner'      # optional: defaults to entire repository
