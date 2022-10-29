@@ -33,7 +33,8 @@ conversion_logs: ['Skipping model without supported weight format: 10.5281/zenod
     (weights formats: [''pytorch_state_dict'']', 'Skipping model without supported
     weight format: 10.5281/zenodo.6334881/6346477 (weights formats: [''pytorch_state_dict'']',
   'Skipping model without supported weight format: 10.5281/zenodo.6865412/6919253
-    (weights formats: [''keras_hdf5'']']
+    (weights formats: [''keras_hdf5'']', 'Skipping model without supported weight
+    format: 10.5281/zenodo.7261974/7261975 (weights formats: [''keras_hdf5'']']
 description: Converted models in the model repository
 format_version: 0.2.1
 name: BioEngine Model Repository
