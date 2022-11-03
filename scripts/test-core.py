@@ -35,7 +35,7 @@ class TritonModelAdapter(ModelAdapter):
 
 
 model_id = "10.5281/zenodo.5874741"
-model_resource = bioimageio.core.load_raw_resource_description(model_id, update_to_format=="latest")
+model_resource = bioimageio.core.load_raw_resource_description(model_id, update_to_format="latest")
 
 rd = model_resource
 # rd = UriNodeTransformer(root_path=rd.root_path, uri_only_if_in_package=True).transform(rd)
