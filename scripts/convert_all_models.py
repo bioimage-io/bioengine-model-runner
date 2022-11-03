@@ -48,7 +48,7 @@ if __name__ == "__main__":
                     os.remove(out_path + ".zip")
                     print(f"Model ({item['id']})downloaded: {out_path}")
 
-                raw_resource = bioimageio.core.load_raw_resource_description(rdf_path)
+                raw_resource = bioimageio.core.load_raw_resource_description(rdf_path, update_to_format=="latest")
                 model_dict = serialize_raw_resource_description_to_dict(raw_resource)
 
                 print(model_dict["weights"].keys())

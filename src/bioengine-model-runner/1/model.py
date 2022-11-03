@@ -57,7 +57,7 @@ executor = concurrent.futures.ThreadPoolExecutor(
 
 
 def get_model_rdf(model_id):
-    raw_resource = bioimageio.core.load_raw_resource_description(model_id)
+    raw_resource = bioimageio.core.load_raw_resource_description(model_id, update_to_format=="latest")
     return serialize_raw_resource_description_to_dict(raw_resource)
 
 
@@ -107,7 +107,7 @@ class TritonPythonModel:
                 try:
                     start_time = time.time()
                     model_resource = bioimageio.core.load_raw_resource_description(
-                        model_id
+                        model_id, update_to_format=="latest"
                     )
                     for s in model_resource.inputs:
                         s.root_path =  model_resource.root_path
