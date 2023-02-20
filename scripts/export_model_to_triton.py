@@ -46,9 +46,7 @@ class DownloadProgressBar(tqdm):
 
 
 def download_url(url, output_path):
-    with DownloadProgressBar(
-        unit="B", leave=False, unit_scale=True, miniters=1, desc=url.split("/")[-1]
-    ) as t:
+    with DownloadProgressBar(unit="B", leave=False, unit_scale=True, miniters=1, desc=url.split("/")[-1]) as t:
         urllib.request.urlretrieve(url, filename=output_path, reporthook=t.update_to)
 
 
@@ -97,9 +95,7 @@ def get_backend_and_source(weights):
 
 
 def get_models():
-    response = requests.get(
-        "https://raw.githubusercontent.com/bioimage-io/collection-bioimage-io/gh-pages/rdf.json"
-    )
+    response = requests.get("https://raw.githubusercontent.com/bioimage-io/collection-bioimage-io/gh-pages/rdf.json")
     summary = json.loads(response.content)
     collection = summary["collection"]
     models = []
@@ -126,9 +122,7 @@ def convert_all(
     remove_after_upload=False,
     **kwargs,
 ):
-    template = jinja2.Template(
-        Path("./scripts/config_template.pbtxt").read_text(encoding="utf-8")
-    )
+    template = jinja2.Template(Path("./scripts/config_template.pbtxt").read_text(encoding="utf-8"))
     model_summaries = get_models()
     count = 0
     converted_models = []
@@ -136,20 +130,19 @@ def convert_all(
     for model_summary in model_summaries:
         response = requests.get(model_summary["rdf_source"])
         rdf = yaml.load(response.content)
-        assert all(
-            ["b" in input_["axes"] for input_ in rdf["inputs"]]
-        ), "b should always exist in the inputs"
-        assert all(
-            ["b" in input_["axes"] for input_ in rdf["outputs"]]
-        ), "b should always exist in the inputs"
+        if not all(["b" in t["axes"] for t in rdf["inputs"]]):
+            print(f"Skipping {rdf['id']} as axis 'b' should always exist in all inputs")
+            continue
+
+        if not all(["b" in t["axes"] for t in rdf["outputs"]]):
+            print(f"Skipping {rdf['id']} as axis 'b' should always exist in all outputs")
+            continue
 
         nickname = rdf["config"]["bioimageio"]["nickname"]
         model_dir = MODELS_DIR / nickname
         if upload and skip_exists:
             try:
-                obj = s3_client.get_object(
-                    Bucket=bucket, Key=prefix + str(nickname + "/rdf.yaml")
-                )
+                obj = s3_client.get_object(Bucket=bucket, Key=prefix + str(nickname + "/rdf.yaml"))
                 exist_rdf = yaml.load(obj["Body"].read())
                 if exist_rdf["id"] == rdf["id"]:
                     print(f"Skipping uploaded model: {rdf['id']}({nickname})")
@@ -159,15 +152,11 @@ def convert_all(
             except s3_client.exceptions.NoSuchKey:
                 pass
 
-        selected_weight_format, backend_info, weight_source = get_backend_and_source(
-            rdf["weights"]
-        )
+        selected_weight_format, backend_info, weight_source = get_backend_and_source(rdf["weights"])
         if backend_info:
             inputs = [
                 {
-                    "name": f'{input_["name"]}__{idx}'
-                    if backend_info["name"] == "pytorch"
-                    else input_["name"],
+                    "name": f'{input_["name"]}__{idx}' if backend_info["name"] == "pytorch" else input_["name"],
                     "dtype": "TYPE_FP32",
                     # + np_to_triton_dtype(np.dtype(input_["data_type"])),
                     "dims": [-1 for dim in input_["axes"] if dim != "b"],
@@ -176,11 +165,8 @@ def convert_all(
             ]
             outputs = [
                 {
-                    "name": f'{output_["name"]}__{idx}'
-                    if backend_info["name"] == "pytorch"
-                    else output_["name"],
-                    "dtype": "TYPE_"
-                    + np_to_triton_dtype(np.dtype(output_["data_type"])),
+                    "name": f'{output_["name"]}__{idx}' if backend_info["name"] == "pytorch" else output_["name"],
+                    "dtype": "TYPE_" + np_to_triton_dtype(np.dtype(output_["data_type"])),
                     "dims": [-1 for dim in output_["axes"] if dim != "b"],
                 }
                 for idx, output_ in enumerate(rdf["outputs"])
@@ -235,11 +221,11 @@ def convert_all(
             count += 1
             converted_models.append(rdf["id"])
         else:
-            skip_msg= f"Skipping model without supported weight format: {rdf['id']} (weights formats: {list(rdf['weights'].keys())}"
+            skip_msg = f"Skipping model without supported weight format: {rdf['id']} (weights formats: {list(rdf['weights'].keys())}"
             print(skip_msg)
             conversion_logs.append(skip_msg)
     print(f"{len(model_summaries)} models in total, {count} models converted, {len(model_summaries) - count} skipped")
-    
+
     manifest = {
         "name": "BioEngine Model Repository",
         "type": "collection",
@@ -257,6 +243,7 @@ def convert_all(
     # save it to yaml
     with open("dist/manifest.bioengine.yaml", "w") as fil:
         yaml.dump(manifest, fil)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
