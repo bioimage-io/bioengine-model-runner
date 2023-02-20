@@ -13,7 +13,7 @@ jobs:
     # You must use a Linux environment when using service containers or container jobs
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2.4.0
+      - uses: actions/checkout@v3.3.0
       - name: Deploy bioengine-model-runner
         uses: jakejarvis/s3-sync-action@master
         if: github.ref == 'refs/heads/main'
