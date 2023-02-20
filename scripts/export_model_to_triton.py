@@ -130,8 +130,13 @@ def convert_all(
     for model_summary in model_summaries:
         response = requests.get(model_summary["rdf_source"])
         rdf = yaml.load(response.content)
-        assert all(["b" in input_["axes"] for input_ in rdf["inputs"]]), "b should always exist in the inputs"
-        assert all(["b" in input_["axes"] for input_ in rdf["outputs"]]), "b should always exist in the inputs"
+        if not all(["b" in t["axes"] for t in rdf["inputs"]]):
+            print(f"Skipping {rdf['id']} as axis 'b' should always exist in all inputs")
+            continue
+
+        if not all(["b" in t["axes"] for t in rdf["outputs"]]):
+            print(f"Skipping {rdf['id']} as axis 'b' should always exist in all outputs")
+            continue
 
         nickname = rdf["config"]["bioimageio"]["nickname"]
         model_dir = MODELS_DIR / nickname
