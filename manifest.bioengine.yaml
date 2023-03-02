@@ -29,7 +29,7 @@ conversion_logs: ['Skipping model without supported weight format: 10.5281/zenod
   'Skipping model without supported weight format: 10.5281/zenodo.6383429/6383430
     (weights formats: [''pytorch_state_dict'']', 'Skipping model without supported
     weight format: 10.5281/zenodo.6334383/6346500 (weights formats: [''pytorch_state_dict'']',
-  'Skipping model without supported weight format: 10.5281/zenodo.6079314/6385590
+  'Skipping model without supported weight format: 10.5281/zenodo.6079314/7688686
     (weights formats: [''pytorch_state_dict'']', 'Skipping model without supported
     weight format: 10.5281/zenodo.6334777/6346524 (weights formats: [''pytorch_state_dict'']',
   'Skipping model without supported weight format: 10.5281/zenodo.6334583/6346519
