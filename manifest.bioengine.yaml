@@ -15,6 +15,7 @@ collection:
 - {id: 10.5281/zenodo.5914248}
 - {id: 10.5281/zenodo.6559474}
 - {id: 10.5281/zenodo.5749843}
+- {id: 10.5281/zenodo.6079314}
 - {id: 10.5281/zenodo.5847355}
 - {id: 10.5281/zenodo.6200999}
 - {id: 10.5281/zenodo.5817052}
@@ -30,15 +31,14 @@ conversion_logs: ['Skipping model without supported weight format: 10.5281/zenod
   'Skipping model without supported weight format: 10.5281/zenodo.6383429/6383430
     (weights formats: [''pytorch_state_dict'']', 'Skipping model without supported
     weight format: 10.5281/zenodo.6334383/6346500 (weights formats: [''pytorch_state_dict'']',
-  'Skipping model without supported weight format: 10.5281/zenodo.6079314/7689587
+  'Skipping model without supported weight format: 10.5281/zenodo.6334777/6346524
     (weights formats: [''pytorch_state_dict'']', 'Skipping model without supported
-    weight format: 10.5281/zenodo.6334777/6346524 (weights formats: [''pytorch_state_dict'']',
-  'Skipping model without supported weight format: 10.5281/zenodo.6334583/6346519
+    weight format: 10.5281/zenodo.6334583/6346519 (weights formats: [''pytorch_state_dict'']',
+  'Skipping model without supported weight format: 10.5281/zenodo.6334881/6346477
     (weights formats: [''pytorch_state_dict'']', 'Skipping model without supported
-    weight format: 10.5281/zenodo.6334881/6346477 (weights formats: [''pytorch_state_dict'']',
-  'Skipping model without supported weight format: 10.5281/zenodo.7274275/7274276
-    (weights formats: [''pytorch_state_dict'']', 'Skipping model without supported
-    weight format: 10.5281/zenodo.6865412/6919253 (weights formats: [''keras_hdf5'']']
+    weight format: 10.5281/zenodo.7274275/7274276 (weights formats: [''pytorch_state_dict'']',
+  'Skipping model without supported weight format: 10.5281/zenodo.6865412/6919253
+    (weights formats: [''keras_hdf5'']']
 description: Converted models in the model repository
 format_version: 0.2.1
 name: BioEngine Model Repository
