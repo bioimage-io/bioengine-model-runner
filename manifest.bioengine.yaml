@@ -15,6 +15,7 @@ collection:
 - {id: 10.5281/zenodo.6200635}
 - {id: 10.5281/zenodo.5869899}
 - {id: 10.5281/zenodo.5764892}
+- {id: 10.5281/zenodo.7274275}
 - {id: 10.5281/zenodo.6406756}
 - {id: 10.5281/zenodo.6334383}
 - {id: 10.5281/zenodo.5914248}
@@ -35,9 +36,8 @@ collection:
 - {id: 10.5281/zenodo.7614645}
 - {id: 10.5281/zenodo.7772662}
 - {id: 10.5281/zenodo.8064806}
-conversion_logs: ['Skipping model without supported weight format: 10.5281/zenodo.7274275/7274276
-    (weights formats: [''pytorch_state_dict'']', 'Skipping model without supported
-    weight format: 10.5281/zenodo.6865412/6919253 (weights formats: [''keras_hdf5'']']
+conversion_logs: ['Skipping model without supported weight format: 10.5281/zenodo.6865412/6919253
+    (weights formats: [''keras_hdf5'']']
 description: Converted models in the model repository
 format_version: 0.2.1
 name: BioEngine Model Repository
