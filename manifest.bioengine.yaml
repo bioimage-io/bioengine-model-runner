@@ -41,7 +41,7 @@ collection:
 conversion_logs: ['Skipping model without supported weight format: 10.5281/zenodo.6865412/6919253
     (weights formats: [''keras_hdf5'']', 'Skipping model without supported weight
     format: 10.5281/zenodo.8142283/8171247 (weights formats: [''pytorch_state_dict'']',
-  'Skipping model without supported weight format: 10.5281/zenodo.8401064/8401065
+  'Skipping model without supported weight format: 10.5281/zenodo.8401064/8429203
     (weights formats: [''pytorch_state_dict'']']
 description: Converted models in the model repository
 format_version: 0.2.1
