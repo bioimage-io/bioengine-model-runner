@@ -38,6 +38,7 @@ collection:
 - {id: 10.5281/zenodo.7772662}
 - {id: 10.5281/zenodo.8420099}
 - {id: 10.5281/zenodo.8419845}
+- {id: 10.5281/zenodo.8421755}
 conversion_logs: ['Skipping model without supported weight format: 10.5281/zenodo.6865412/6919253
     (weights formats: [''keras_hdf5'']', 'Skipping model without supported weight
     format: 10.5281/zenodo.8142283/8171247 (weights formats: [''pytorch_state_dict'']',
