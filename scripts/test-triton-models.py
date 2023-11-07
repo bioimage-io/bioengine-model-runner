@@ -4,7 +4,7 @@ import requests
 
 async def main():
     server = await connect_to_server(
-        {"name": "test client", "server_url": "https://ai.imjoy.io", "method_timeout": 30}
+        {"name": "test client", "server_url": "https://hypha.bioimage.io/", "method_timeout": 30}
     )
 
     triton = await server.get_service("triton-client")
@@ -16,7 +16,7 @@ async def main():
     collection = data["collection"]
 
     for model_info in collection:
-        model_id = model_info["id"] 
+        model_id = model_info["id"]
         kwargs = {"model_id": model_id, "inputs": None, "return_rdf": True}
         try:
             ret = await triton.execute(
