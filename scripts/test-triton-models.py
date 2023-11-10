@@ -3,11 +3,24 @@ import traceback
 import imageio
 from imjoy_rpc.hypha import connect_to_server
 import requests
+import numpy as np
+
+
+SERVERS = [
+        "https://ai.imjoy.io/",
+        "https://hypha.bioimage.io/",
+]
 
 
 async def main():
+    for url in SERVERS:
+        print(f"***** Testing {url} *****")
+        await test_server(url)
+
+
+async def test_server(url):
     server = await connect_to_server(
-        {"name": "test client", "server_url": "https://hypha.bioimage.io/", "method_timeout": 30}
+        {"name": "test client", "server_url": url, "method_timeout": 30}
     )
 
     triton = await server.get_service("triton-client")
@@ -40,10 +53,8 @@ async def main():
             model_name="cellpose-python",
             decode_json=True
         )
-        print(ret.keys())
-        print(ret)
         mask = ret['mask'][0]
-        print("Model test passed: ", "Cellpose usinig cellpose-python")
+        print("Model test passed: ", "Cellpose using cellpose-python")
     except:
 
         print("Model test failed: ", "Cellpose using cellpose-python")
@@ -52,17 +63,19 @@ async def main():
     # One-off test of the stardist model
     image = imageio.v3.imread('https://static.imjoy.io/img/img02.png')
     try:
+        # big_im = (255 * np.random.rand(1000,1000)).astype('uint16')
+        # nms_thresh = 100
+        # prob_thresh = 0.5
         ret = await triton.execute(
-            inputs=[image.astype('float32'), {'diameter': 30}],
-            model_name="stardist-python",
+            inputs=[image[...,0].astype('uint16'), {}],
+            # inputs=[big_im, {'nms_thresh' : nms_thresh, 'prob_thresh' : prob_thresh}],
+            model_name="stardist",
             decode_json=True
         )
-        print(ret.keys())
-        print(ret)
         mask = ret['mask'][0]
-        print("Model test passed: ", "Stardist using stardist-python")
+        print("Model test passed: ", "Stardist using stardist")
     except:
-        print("Model test failed: ", "Cellpose using cellpose-python")
+        print("Model test failed: ", "Stardist using stardist")
         traceback.print_exc()
 
 asyncio.run(main())
