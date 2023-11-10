@@ -47,13 +47,15 @@ async def test_server(url):
 
     # One-off test of the cellpose model
     image = imageio.v3.imread('https://static.imjoy.io/img/img02.png')
+    image = image.astype('float32')
     try:
         ret = await triton.execute(
-            inputs=[image.astype('float32'), {'diameter': 30}],
+            inputs=[image, {'diameter': 30}],
             model_name="cellpose-python",
             decode_json=True
         )
-        mask = ret['mask'][0]
+        # NOTE: Input is RGB, Output is binary mask with leading singleton dimension
+        assert ret['mask'].shape[1:] == image.shape[:2], f"Mismatched shapes: {ret['mask'].shape} != {image.shape}"
         print("Model test passed: ", "Cellpose using cellpose-python")
     except:
 
@@ -62,17 +64,18 @@ async def test_server(url):
 
     # One-off test of the stardist model
     image = imageio.v3.imread('https://static.imjoy.io/img/img02.png')
+    image = image[...,0].astype('uint16')
     try:
         # big_im = (255 * np.random.rand(1000,1000)).astype('uint16')
         # nms_thresh = 100
         # prob_thresh = 0.5
         ret = await triton.execute(
-            inputs=[image[...,0].astype('uint16'), {}],
+            inputs=[image, {}],
             # inputs=[big_im, {'nms_thresh' : nms_thresh, 'prob_thresh' : prob_thresh}],
             model_name="stardist",
             decode_json=True
         )
-        mask = ret['mask'][0]
+        assert ret['mask'].shape == image.shape, f"Mismatched shapes: {ret['mask'].shape} != {image.shape}"
         print("Model test passed: ", "Stardist using stardist")
     except:
         print("Model test failed: ", "Stardist using stardist")
