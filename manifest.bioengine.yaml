@@ -2,7 +2,6 @@ collection:
 - {id: 10.5281/zenodo.5764892}
 - {id: 10.5281/zenodo.5874741}
 - {id: 10.5281/zenodo.5869899}
-- {id: 10.5281/zenodo.6338614}
 - {id: 10.5281/zenodo.5874841}
 - {id: 10.5281/zenodo.6028097}
 - {id: 10.5281/zenodo.6028280}
@@ -11,7 +10,6 @@ collection:
 - {id: 10.5281/zenodo.6200635}
 - {id: 10.5281/zenodo.6348084}
 - {id: 10.5281/zenodo.6346511}
-- {id: 10.5281/zenodo.6348728}
 - {id: 10.5281/zenodo.5847355}
 - {id: 10.5281/zenodo.6406803}
 - {id: 10.5281/zenodo.5817052}
@@ -25,7 +23,6 @@ collection:
 - {id: 10.5281/zenodo.6334777}
 - {id: 10.5281/zenodo.6334583}
 - {id: 10.5281/zenodo.5910854}
-- {id: 10.5281/zenodo.6811491}
 - {id: 10.5281/zenodo.5910163}
 - {id: 10.5281/zenodo.7261974}
 - {id: 10.5281/zenodo.6559474}
@@ -39,6 +36,9 @@ collection:
 - {id: 10.5281/zenodo.8421755}
 - {id: 10.5281/zenodo.8419845}
 - {id: 10.5281/zenodo.8420099}
+- {id: 10.5281/zenodo.6338614}
+- {id: 10.5281/zenodo.6348728}
+- {id: 10.5281/zenodo.6811491}
 conversion_logs: ['Skipping model without supported weight format: 10.5281/zenodo.6865412/6919253
     (weights formats: [''keras_hdf5'']', 'Skipping model without supported weight
     format: 10.5281/zenodo.8142283/8171247 (weights formats: [''pytorch_state_dict'']',
