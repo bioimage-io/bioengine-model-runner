@@ -1,8 +1,8 @@
 collection:
 - {id: 10.5281/zenodo.5764892}
 - {id: 10.5281/zenodo.6338614}
-- {id: 10.5281/zenodo.5874741}
 - {id: 10.5281/zenodo.5869899}
+- {id: 10.5281/zenodo.5874741}
 - {id: 10.5281/zenodo.5914248}
 - {id: 10.5281/zenodo.5874841}
 - {id: 10.5281/zenodo.6028097}
@@ -10,12 +10,12 @@ collection:
 - {id: 10.5281/zenodo.6348084}
 - {id: 10.5281/zenodo.6028280}
 - {id: 10.5281/zenodo.6200635}
-- {id: 10.5281/zenodo.6348728}
 - {id: 10.5281/zenodo.6406756}
+- {id: 10.5281/zenodo.6348728}
 - {id: 10.5281/zenodo.6346511}
 - {id: 10.5281/zenodo.5847355}
-- {id: 10.5281/zenodo.5817052}
 - {id: 10.5281/zenodo.6406803}
+- {id: 10.5281/zenodo.5817052}
 - {id: 10.5281/zenodo.6200999}
 - {id: 10.5281/zenodo.6384845}
 - {id: 10.5281/zenodo.7261974}
@@ -41,8 +41,8 @@ collection:
 - {id: 10.5281/zenodo.8420099}
 conversion_logs: ['Skipping model without supported weight format: 10.5281/zenodo.6865412/6919253
     (weights formats: [''keras_hdf5'']', 'Skipping model without supported weight
-    format: 10.5281/zenodo.8142283/8171247 (weights formats: [''pytorch_state_dict'']',
-  'Skipping model without supported weight format: 10.5281/zenodo.8401064/8429203
+    format: 10.5281/zenodo.8401064/8429203 (weights formats: [''pytorch_state_dict'']',
+  'Skipping model without supported weight format: 10.5281/zenodo.8142283/8171247
     (weights formats: [''pytorch_state_dict'']']
 description: Converted models in the model repository
 format_version: 0.2.1
