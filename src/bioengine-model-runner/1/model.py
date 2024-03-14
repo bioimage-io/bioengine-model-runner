@@ -18,6 +18,7 @@ import xarray as xr
 import traceback
 import logging
 import sys
+import os
 
 from imjoy_rpc.hypha import RPC
 import msgpack
@@ -114,11 +115,12 @@ class TritonPythonModel:
                     for s in model_resource.outputs:
                         s.root_path =  model_resource.root_path
                     
+                    triton_server_url = os.environ.get("TRITON_SERVER_URL", "127.0.0.1:8000")
 
                     pred_pipeline = create_prediction_pipeline(
                         bioimageio_model=model_resource,
                         model_adapter=TritonModelAdapter(
-                            server_url="127.0.0.1:8000",
+                            server_url=triton_server_url,
                             model_id=model_resource.config["bioimageio"]["nickname"],
                             model_version="1",
                             model_resource=model_resource,
