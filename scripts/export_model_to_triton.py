@@ -95,7 +95,7 @@ def get_backend_and_source(weights):
 
 
 def get_models():
-    response = requests.get("https://raw.githubusercontent.com/bioimage-io/collection-bioimage-io/gh-pages/rdf.json")
+    response = requests.get("https://uk1s3.embassy.ebi.ac.uk/public-datasets/bioimage.io/collection.json")
     summary = json.loads(response.content)
     collection = summary["collection"]
     models = []

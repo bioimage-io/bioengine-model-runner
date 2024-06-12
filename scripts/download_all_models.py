@@ -23,7 +23,7 @@ import bioimageio.core
 if __name__ == "__main__":
 
     response = requests.get(
-        "https://raw.githubusercontent.com/bioimage-io/collection-bioimage-io/gh-pages/rdf.json"
+        "https://uk1s3.embassy.ebi.ac.uk/public-datasets/bioimage.io/collection.json"
     )
     summary = json.loads(response.content)
     collection = summary["collection"]
